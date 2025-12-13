@@ -20,7 +20,7 @@ Sistema automatizado para generar preguntas de examen desafiantes basadas en mat
 
 ## Instalación
 
-1. **Clonar o copiar el directorio `generador_examenes/`**
+1. **Clonar o copiar el directorio `evolutia/`**
 
 2. **Instalar dependencias**:
 ```bash
@@ -451,5 +451,5 @@ Este proyecto fue desarrollado utilizando asistencia de Inteligencia Artificial:
 
 ## Contacto
 
-Para preguntas o sugerencias, contacta al docente del curso.
+Para preguntas o sugerencias, glacy@tec.ac.cr.
 
