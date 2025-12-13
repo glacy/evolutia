@@ -1,0 +1,10 @@
+openai>=1.12.0
+anthropic>=0.18.0
+pyyaml>=6.0.1
+markdown>=3.5.2
+myst-parser>=2.0.0
+python-dotenv>=1.0.1
+chromadb>=0.4.22
+sentence-transformers>=2.3.1
+tqdm>=4.66.0
+httpx>=0.26.0

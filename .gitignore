@@ -1,0 +1,22 @@
+# Python internals
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE settings
+.vscode/
+.idea/
+
+# EvolutIA specific
+storage/
+logs/
+
+# MacOS
+.DS_Store
