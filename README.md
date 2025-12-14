@@ -2,6 +2,12 @@
 
 Sistema automatizado para generar preguntas de examen desafiantes basadas en materiales didácticos existentes (lecturas, prácticas, tareas). El sistema aumenta la complejidad matemática de los ejercicios mientras mantiene el formato y estructura familiar.
 
+## Contexto del proyecto
+
+EvolutIA nace como una herramienta complementaria para el curso **Métodos Matemáticos para Física e Ingeniería I (MMFI1)** del TEC.
+
+El contenido base del curso se gestiona y despliega en **[Curvenote](https://glacy-mmfi1.curve.space/)**. Este generador utiliza dichos materiales (alojados en este mismo repositorio) como "semilla" para crear evaluaciones nuevas que mantienen coherencia temática y estilística con el sitio web del curso.
+
 ## Características
 
 - **Extracción automática**: Lee y procesa materiales didácticos en formato Markdown/MyST
