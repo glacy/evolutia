@@ -238,6 +238,35 @@ rag:
 - Prefieres simplicidad y rapidez
 - El costo es una preocupación
 
+## Gestión de metadatos
+
+El sistema implementa una propagación inteligente de metadatos para asegurar la trazabilidad y organización de los ejercicios generados.
+
+### Sistema de Tags
+EvolutIA lee y preserva los tags de los archivos fuente (`*practica*.md`). Se utiliza una taxonomía multidimensional:
+- **Conceptos**: `autovalores`, `teorema-divergencia`, `producto-cruz`
+- **Tipo de competencia**: `conceptual`, `procedimental`, `aplicacion`, `demostracion`
+- **Nivel**: `basico`, `intermedio`, `desafio`
+
+### Flujo de propagación
+1. **Entrada**: El sistema lee el frontmatter del archivo original (ej: `matrices/semana11_practica.md`).
+2. **Generación**: Durante la creación de la variación, se preservan estos metadatos junto con los nuevos datos generados por la IA.
+3. **Salida**:
+   - **Archivos individuales**: Cada ejercicio (`ex1_e3.md`) incluye sus tags específicos y el subject original.
+   - **Archivo de examen**: El archivo principal (`examen3.md`) agrega automáticamente **todos** los tags únicos de los ejercicios que contiene, permitiendo una vista rápida de los temas cubiertos.
+
+### Ejemplo de resultado (frontmatter)
+```yaml
+generator: evolutia
+source: ai_variation
+date: '2025-12-13T22:00:00'
+tags:
+  - autovalores
+  - diagonalizacion
+  - procedimental
+original_subject: Matrices - Semana 12
+```
+
 ## Estructura de Archivos Generados
 
 El script genera la siguiente estructura:
