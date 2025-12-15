@@ -101,7 +101,7 @@ Ejemplos:
     parser.add_argument(
         '--api',
         type=str,
-        choices=['openai', 'anthropic', 'local'],
+        choices=['openai', 'anthropic', 'local', 'gemini'],
         default='openai',
         help='Proveedor de API de IA (default: openai)'
     )
@@ -314,13 +314,13 @@ Ejemplos:
         # Inicializar generador
         # Inicializar generador
         generator = None
-        if args.use_rag and rag_manager:
-            retriever = rag_manager.get_retriever()
+        if (args.use_rag and rag_manager) or args.mode == 'creation':
+            retriever = rag_manager.get_retriever() if (args.use_rag and rag_manager) else None
             generator = EnhancedVariationGenerator(
                 api_provider=args.api,
                 retriever=retriever
             )
-            validator = ConsistencyValidator(retriever=retriever)
+            validator = ConsistencyValidator(retriever=retriever) if retriever else ComplexityValidator()
         else:
             generator = VariationGenerator(api_provider=args.api)
             validator = ComplexityValidator()
@@ -341,9 +341,9 @@ Ejemplos:
         if args.mode == 'creation':
             logger.info(f"MODO CREACIÓN: Generando {args.num_ejercicios} ejercicios nuevos para: {args.tema}")
             
-            if not isinstance(generator, EnhancedVariationGenerator):
-                logger.error("El modo creación REQUIERE usar RAG (--use_rag).")
-                return 1
+            # if not isinstance(generator, EnhancedVariationGenerator):
+            #    logger.error("El modo creación REQUIERE usar RAG (--use_rag).")
+            #    return 1
                 
             for i in tqdm(range(args.num_ejercicios), desc="Creando ejercicios"):
                 # Estrategia Round-Robin para temas y tags

@@ -15,7 +15,9 @@ El contenido base del curso se gestiona y despliega en **[Curvenote](https://gla
 - **Generación inteligente**: Usa IA (OpenAI GPT-4 o Claude) para crear variaciones más complejas
 - **Validación automática**: Verifica que las variaciones sean más desafiantes que los originales
 - **Formato consistente**: Genera archivos en formato MyST/Markdown compatible con Curvenote
-- **RAG opcional**: Sistema de Retrieval-Augmented Generation para enriquecer con contexto del curso
+- **Multi-proveedor**: Soporte para OpenAI (GPT-4), Anthropic (Claude 3) y Google (Gemini 1.5).
+- **RAG (Retrieval-Augmented Generation)**: Utiliza apuntes de clase y ejercicios existentes para dar contexto.
+- **Modo Creación**: Genera ejercicios nuevos desde cero basados en temas y tags. del curso
 
 ## Requisitos
 
@@ -44,6 +46,7 @@ pip install -r requirements.txt
    ```
    OPENAI_API_KEY=sk-tu-api-key-aqui
    ANTHROPIC_API_KEY=sk-ant-tu-api-key-aqui
+   GOOGLE_API_KEY=tu-api-key-aqui
    ```
 
    **Obtener API keys**:

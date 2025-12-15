@@ -2,7 +2,9 @@
 Enhanced Variation Generator: Genera variaciones usando RAG.
 """
 import logging
+import os
 from typing import Dict, Optional
+import google.generativeai as genai
 
 try:
     from variation_generator import VariationGenerator
@@ -45,6 +47,14 @@ class EnhancedVariationGenerator(VariationGenerator):
         super().__init__(api_provider)
         self.retriever = retriever
         self.context_enricher = context_enricher or ContextEnricher()
+
+        # Configurar Gemini si es necesario
+        if self.api_provider == 'gemini':
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                logger.warning("GOOGLE_API_KEY no encontrada en variables de entorno")
+            else:
+                genai.configure(api_key=api_key)
     
     def _retrieve_context(self, exercise: Dict, analysis: Dict) -> Dict:
         """
@@ -217,9 +227,9 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             Diccionario con el nuevo ejercicio y su solución
         """
         if not self.retriever:
-            logger.warning("RAG no disponible para generación desde cero")
-            return None
-            
+            logger.info("Generando sin contexto RAG (retriever no disponible)")
+            # Continuar sin contexto
+        
         tags = tags or []
         context = {}
         
@@ -231,23 +241,26 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             topic_list = [topic]
             topic_str = topic
         
-        # 1. Recuperar contexto teórico
-        reading_context = self.retriever.retrieve_reading_context(topic_str, top_k=3)
-        context['reading_context'] = reading_context
-        
-        # 2. Recuperar ejercicios relacionados para estilo
-        search_terms = tags + topic_list
-        related_exercises = self.retriever.retrieve_related_concepts(search_terms, top_k=3)
-        context['related_exercises'] = related_exercises
+        if self.retriever:
+            # 1. Recuperar contexto teórico
+            reading_context = self.retriever.retrieve_reading_context(topic_str, top_k=3)
+            context['reading_context'] = reading_context
+            
+            # 2. Recuperar ejercicios relacionados para estilo
+            search_terms = tags + topic_list
+            related_exercises = self.retriever.retrieve_related_concepts(search_terms, top_k=3)
+            context['related_exercises'] = related_exercises
         
         # 3. Construir prompt
         prompt = self._create_new_exercise_prompt(topic, tags, context, difficulty)
         
-        # 4. Generar
+        # 4. Generar variación
         if self.api_provider == "openai":
-            content = self._call_openai_api(prompt, model=self.model_name or "gpt-4")
+            content = self._call_openai_api(prompt, model=self.model_name)
         elif self.api_provider == "anthropic":
-            content = self._call_anthropic_api(prompt, model=self.model_name or "claude-3-opus-20240229")
+            content = self._call_anthropic_api(prompt, model=self.model_name)
+        elif self.api_provider == "gemini":
+            content = self._call_gemini_api(prompt, model=self.model_name)
         elif self.api_provider == "local":
             content = self._call_local_api(prompt)
         else:
@@ -322,3 +335,26 @@ SOLUCIÓN REQUERIDA:
 [Solución detallada paso a paso aquí]
 """
 
+    def _call_gemini_api(self, prompt: str, model: str = None) -> str:
+        """Llama a la API de Google Gemini."""
+        try:
+            model_name = model or "gemini-2.5-pro"
+            # Mapeo de nombres si config usa short names
+            if model_name == 'gemini': model_name = "gemini-2.5-pro"
+            
+            gen_model = genai.GenerativeModel(model_name)
+            
+            # Configurar generation config si es necesario (temperatura, etc)
+            generation_config = genai.types.GenerationConfig(
+                temperature=0.7,
+            )
+            
+            response = gen_model.generate_content(
+                prompt,
+                generation_config=generation_config
+            )
+            
+            return response.text
+        except Exception as e:
+            logger.error(f"Error llamando a Gemini API: {e}")
+            return ""

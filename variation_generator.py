@@ -24,7 +24,6 @@ class VariationGenerator:
         Inicializa el generador.
         
         Args:
-        Args:
             api_provider: Proveedor de API ('openai', 'anthropic' o 'local')
             base_url: URL base para proveedor local
             local_model: Nombre del modelo para proveedor local
@@ -54,6 +53,12 @@ class VariationGenerator:
             # En una implementación más robusta, pasaríamos config al constructor.
             self.api_key = "not-needed"
             # base_url y model se setean en __init__ o se usan defaults del método de llamada
+        elif self.api_provider == "gemini":
+            self.api_key = os.getenv("GOOGLE_API_KEY")
+            if not self.api_key:
+                logger.warning("GOOGLE_API_KEY no encontrada en variables de entorno")
+            else:
+                logger.info("GOOGLE_API_KEY cargada correctamente")
         else:
             logger.warning(f"Proveedor de API desconocido: {self.api_provider}")
     
@@ -256,9 +261,14 @@ GENERA SOLO EL ENUNCIADO DEL EJERCICIO VARIADO (sin solución). El ejercicio deb
             variation_content = self._call_anthropic_api(prompt, model=self.model_name or "claude-3-opus-20240229")
         elif self.api_provider == "local":
             variation_content = self._call_local_api(prompt)
+        elif self.api_provider == "gemini":
+            # Si se llama desde la clase base, lanzar error o implementar básico
+            # En este caso, EnhancedVariationGenerator lo maneja, pero el base necesita no fallar
+            logger.error("VariationGenerator base no implementa llamadas a Gemini directamente. Use EnhancedVariationGenerator.")
+            variation_content = None
         else:
             logger.error(f"Proveedor de API no soportado: {self.api_provider}")
-            return None
+            variation_content = None
         
         if not variation_content:
             return None
