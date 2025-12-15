@@ -141,30 +141,87 @@ class EnhancedVariationGenerator(VariationGenerator):
         
         return enriched_prompt
     
-    def generate_variation(self, exercise: Dict, analysis: Dict) -> Optional[Dict]:
+    def generate_variation(self, exercise: Dict, analysis: Dict, exercise_type: str = "development") -> Optional[Dict]:
         """
-        Genera una variación más compleja usando RAG.
+        Genera una variación de un ejercicio existente.
+        Permite generar variaciones de desarrollo o convertir a quiz conceptual.
+        """
+        # 1. Recuperar contexto RAG si aplica
+        context = self._retrieve_context(exercise, analysis)
         
-        Args:
-            exercise: Información del ejercicio original
-            analysis: Análisis de complejidad del ejercicio original
+        # 2. Enriquecer contexto
+        context_str = self.context_enricher.format_context_dict(context)
+        
+        # 3. Construir prompt según tipo
+        if exercise_type == 'multiple_choice':
+            # Para quiz, usamos el contenido del ejercicio como base
+            context_info = {
+                'content': f"Ejercicio Base:\n{exercise.get('content')}\n\nSolución Base:\n{(exercise.get('solution') or '')[:500]}...\n\nContexto Adicional:\n{context_str}"
+            }
+            prompt = self._create_quiz_prompt(context_info)
+        else:
+            # Flujo normal de variación desarrollo (llamando a lógica padre modificada o directa)
+            # Para mantener compatibilidad con RAG, inyectamos contexto en prompt
+            # Hack: Modificar temporalmente el contenido para que el prompt base incluya el contexto
+            # O mejor, usar _create_prompt del padre y añadirle el contexto manualmente
             
-        Returns:
-            Diccionario con la variación generada o None si hay error
-        """
-        # El método _create_prompt ya está sobrescrito para usar RAG
-        # Así que solo llamamos al método del padre que usa nuestro prompt enriquecido
-        variation = super().generate_variation(exercise, analysis)
+            prompt = self._create_prompt(exercise, analysis)
+            prompt += f"\n\nCONTEXTO ADICIONAL DEL CURSO:\n{context_str}"
         
-        if variation and self.retriever:
-            # Agregar información sobre el contexto usado
-            context = self._retrieve_context(exercise, analysis)
-            variation['rag_context'] = {
+        # 4. Generar variación
+        content = None
+        if self.api_provider == "openai":
+            content = self._call_openai_api(prompt, model=self.model_name)
+        elif self.api_provider == "anthropic":
+            content = self._call_anthropic_api(prompt, model=self.model_name)
+        elif self.api_provider == "gemini":
+            content = self._call_gemini_api(prompt, model=self.model_name)
+        elif self.api_provider == "local":
+            content = self._call_local_api(prompt)
+        
+        if not content:
+            return None
+        
+        # 5. Parsear respuesta
+        variation_content = ""
+        variation_solution = ""
+        
+        if exercise_type == 'multiple_choice':
+            try:
+                import json
+                clean_content = content.replace('```json', '').replace('```', '').strip()
+                data = json.loads(clean_content, strict=False)
+                
+                variation_content = f"{data['question']}\n\n"
+                for opt, text in data['options'].items():
+                    variation_content += f"- **{opt})** {text}\n"
+                
+                variation_solution = f"**Respuesta Correcta: {data['correct_option']}**\n\n{data['explanation']}"
+            except Exception as e:
+                logger.error(f"Error parseando JSON de quiz en variación: {e}")
+                variation_content = content
+        else:
+            variation_content = content
+            variation_solution = "Solución pendiente..." 
+            
+            # Intento de mejora de parsing standard si el modelo siguio instrucciones
+            parts = content.split("SOLUCIÓN REQUERIDA:") 
+            # (Aunque esto depende del prompt base, asumimos comportamiento del nuevo prompt quiz o el base)
+        
+        variation = {
+            'variation_content': variation_content,
+            'variation_solution': variation_solution,
+            'original_frontmatter': exercise.get('frontmatter', {}),
+            'type': exercise_type
+        }
+        
+        if self.retriever and context:
+             variation['rag_context'] = {
                 'similar_exercises_count': len(context.get('similar_exercises', [])),
                 'related_concepts_count': len(context.get('related_concepts', [])),
                 'reading_context_count': len(context.get('reading_context', []))
             }
-        
+            
         return variation
     
     def generate_variation_with_solution(self, exercise: Dict, analysis: Dict) -> Optional[Dict]:
@@ -214,7 +271,7 @@ GENERA LA SOLUCIÓN COMPLETA:"""
         
         return variation
 
-    def generate_new_exercise_from_topic(self, topic: str, tags: list = None, difficulty: str = "alta") -> Optional[Dict]:
+    def generate_new_exercise_from_topic(self, topic: str, tags: list = None, difficulty: str = "alta", exercise_type: str = "development") -> Optional[Dict]:
         """
         Genera un ejercicio nuevo desde cero basado en un tema y tags.
         
@@ -222,6 +279,7 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             topic: Tema principal (ej: "analisis_vectorial")
             tags: Lista de tags específicos (ej: ["stokes", "teorema"])
             difficulty: Nivel de dificultad (media, alta, muy_alta)
+            exercise_type: Tipo de ejercicio ('development' o 'multiple_choice')
             
         Returns:
             Diccionario con el nuevo ejercicio y su solución
@@ -252,9 +310,18 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             context['related_exercises'] = related_exercises
         
         # 3. Construir prompt
-        prompt = self._create_new_exercise_prompt(topic, tags, context, difficulty)
+        # 3. Construir prompt
+        if exercise_type == 'multiple_choice':
+            # Preparar info para el prompt de quiz
+            context_info = {
+                'content': f"Tema: {topic_str}\nTags: {', '.join(tags)}\nDificultad: {difficulty}\nContexto: {str(context)}"
+            }
+            prompt = self._create_quiz_prompt(context_info)
+        else:
+            prompt = self._create_new_exercise_prompt(topic, tags, context, difficulty)
         
         # 4. Generar variación
+        content = None
         if self.api_provider == "openai":
             content = self._call_openai_api(prompt, model=self.model_name)
         elif self.api_provider == "anthropic":
@@ -263,34 +330,55 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             content = self._call_gemini_api(prompt, model=self.model_name)
         elif self.api_provider == "local":
             content = self._call_local_api(prompt)
-        else:
-            return None
-            
+        
         if not content:
             return None
             
-        # 5. Estructurar resultado
-        # El modelo debe devolver ejercicio y solución separados. 
-        # Asumiremos un formato estándar o usaremos parsing simple.
-        
-        parts = content.split("SOLUCIÓN REQUERIDA:")
-        exercise_text = content
+        # 5. Parsear respuesta
+        exercise_text = ""
         solution_text = ""
         
-        if len(parts) > 1:
-            exercise_text = parts[0].replace("EJERCICIO NUEVO:", "").strip()
-            solution_text = parts[1].strip()
+        if exercise_type == 'multiple_choice':
+            try:
+                import json
+                # Limpiar bloques de código si el LLM los puso
+                clean_content = content.replace('```json', '').replace('```', '').strip()
+                # strict=False permite caracteres de control como saltos de línea dentro de strings
+                data = json.loads(clean_content, strict=False)
+                
+                # Formatear como ejercicio
+                exercise_text = f"{data['question']}\n\n"
+                for opt, text in data['options'].items():
+                    exercise_text += f"- **{opt})** {text}\n"
+                
+                # Formatear solución
+                solution_text = f"**Respuesta Correcta: {data['correct_option']}**\n\n{data['explanation']}"
+            except Exception as e:
+                logger.error(f"Error parseando JSON de quiz: {e}")
+                # Fallback: usar texto crudo
+                exercise_text = content
+                solution_text = "Verificar formato generado."
         else:
-            # Fallback si el modelo no usó el separador exacto
-            exercise_text = content.replace("EJERCICIO NUEVO:", "").strip()
-        
+            # Parseo normal de ejercicio de desarrollo
+            parts = content.split("SOLUCIÓN REQUERIDA:")
+            if len(parts) == 2:
+                exercise_text = parts[0].replace("EJERCICIO NUEVO:", "").strip()
+                solution_text = parts[1].strip()
+            else:
+                exercise_text = content
+                solution_text = ""
+                
+        variation_content = exercise_text
+        variation_solution = solution_text
+            
         return {
-            'variation_content': exercise_text,
-            'variation_solution': solution_text,
+            'variation_content': variation_content,
+            'variation_solution': variation_solution,
             'original_frontmatter': {
-                'subject': topic,
+                'subject': topic_str,
                 'tags': tags,
-                'complexity': difficulty
+                'complexity': difficulty,
+                'type': exercise_type
             }
         }
 

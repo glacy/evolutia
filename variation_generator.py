@@ -116,6 +116,61 @@ GENERA SOLO EL ENUNCIADO DEL EJERCICIO VARIADO (sin solución). El ejercicio deb
         
         return prompt
     
+    def _create_quiz_prompt(self, context_info: Dict) -> str:
+        """
+        Crea el prompt para ejercicios de selección única.
+        
+        Args:
+            context_info: Diccionario con info del ejercicio base o tema
+            
+        Returns:
+            Prompt para generar JSON
+        """
+        content = context_info.get('content', '')
+        
+        prompt = f"""Eres un experto docente universitario en física y matemáticas.
+Tu tarea es crear una pregunta de SELECCIÓN ÚNICA (Multiple Choice) de alta calidad y complejidad, basada en el siguiente contexto o ejercicio:
+
+CONTEXTO/EJERCICIO BASE:
+{content}
+
+REQUISITOS:
+1. Nivel: Universitario avanzado.
+2. ENFOQUE: CONCEPTUAL. La pregunta debe evaluar la comprensión profunda de conceptos, teoremas, definiciones o propiedades.
+   - EVITA preguntas que requieran cálculos largos o procedimentales.
+   - PREFIERE preguntas sobre implicaciones teóricas, relaciones entre conceptos, o interpretaciones físicas.
+   - ESTILO: Directo, conciso, tipo "completar la frase" o "seleccionar la afirmación verdadera".
+
+EJEMPLO DE ESTILO DESEADO:
+"El producto escalar de vectores perpendiculares es __________."
+Opciones:
+A) nulo
+B) unitario
+C) positivo
+D) negativo
+
+3. Formato: Selección única con 4 opciones (A, B, C, D).
+4. Solo UNA opción debe ser correcta.
+5. Las otras 3 opciones (distractores) deben ser plausibles y basadas en errores conceptuales comunes.
+6. Incluye una retroalimentación/explicación detallada.
+
+SALIDA OBLIGATORIA: JSON
+Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructura (sin bloques de código markdown):
+
+{{
+  "question": "Enunciado de la pregunta en LaTeX/MyST...",
+  "options": {{
+    "A": "Opción A...",
+    "B": "Opción B...",
+    "C": "Opción C...",
+    "D": "Opción D..."
+  }},
+  "correct_option": "A",
+  "explanation": "Explicación detallada..."
+}}
+"""
+        return prompt
+    
     def _call_openai_api(self, prompt: str, model: str = "gpt-4") -> Optional[str]:
         """
         Llama a la API de OpenAI.
@@ -241,19 +296,67 @@ GENERA SOLO EL ENUNCIADO DEL EJERCICIO VARIADO (sin solución). El ejercicio deb
         except Exception as e:
             logger.error(f"Error llamando a Anthropic API: {e}")
             return None
+            logger.error(f"Error llamando a Anthropic API: {e}")
+            return None
     
-    def generate_variation(self, exercise: Dict, analysis: Dict) -> Optional[Dict]:
+    def _call_gemini_api(self, prompt: str, model: str = "gemini-2.5-pro") -> Optional[str]:
         """
-        Genera una variación más compleja del ejercicio.
+        Llama a la API de Google Gemini.
+        """
+        try:
+            import google.generativeai as genai
+            import os
+            
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                logger.error("GOOGLE_API_KEY no configurada")
+                return None
+            
+            genai.configure(api_key=api_key)
+            
+            model_name = model or "gemini-2.5-pro"
+            if model_name == 'gemini': model_name = "gemini-2.5-pro"
+
+            generation_config = {
+                "temperature": 0.7,
+                "top_p": 0.95,
+                "top_k": 64,
+                "max_output_tokens": 8192,
+                "response_mime_type": "text/plain",
+            }
+            
+            model_instance = genai.GenerativeModel(
+                model_name=model_name,
+                generation_config=generation_config,
+            )
+            
+            response = model_instance.generate_content(prompt)
+            
+            return response.text
+        except Exception as e:
+            logger.error(f"Error llamando a Gemini API: {e}")
+            return None
+
+    def generate_variation(self, exercise: Dict, analysis: Dict, exercise_type: str = "development") -> Optional[Dict]:
+        """
+        Genera una variación más compleja de un ejercicio.
         
         Args:
-            exercise: Información del ejercicio original
+            exercise: Información del ejercicio original (content, solution, metadata)
             analysis: Análisis de complejidad del ejercicio original
+            exercise_type: Tipo de ejercicio ('development' o 'multiple_choice')
             
         Returns:
             Diccionario con la variación generada o None si hay error
         """
-        prompt = self._create_prompt(exercise, analysis)
+        # 1. Crear prompt
+        if exercise_type == 'multiple_choice':
+             context_info = {
+                'content': f"Ejercicio Base:\n{exercise.get('content')}\n\nSolución Base:\n{(exercise.get('solution') or '')[:500]}..."
+            }
+             prompt = self._create_quiz_prompt(context_info)
+        else:
+            prompt = self._create_prompt(exercise, analysis)
         
         if self.api_provider == "openai":
             variation_content = self._call_openai_api(prompt, model=self.model_name or "gpt-4")
@@ -262,23 +365,60 @@ GENERA SOLO EL ENUNCIADO DEL EJERCICIO VARIADO (sin solución). El ejercicio deb
         elif self.api_provider == "local":
             variation_content = self._call_local_api(prompt)
         elif self.api_provider == "gemini":
-            # Si se llama desde la clase base, lanzar error o implementar básico
-            # En este caso, EnhancedVariationGenerator lo maneja, pero el base necesita no fallar
-            logger.error("VariationGenerator base no implementa llamadas a Gemini directamente. Use EnhancedVariationGenerator.")
-            variation_content = None
+            variation_content = self._call_gemini_api(prompt, model=self.model_name)
         else:
             logger.error(f"Proveedor de API no soportado: {self.api_provider}")
             variation_content = None
         
         if not variation_content:
             return None
+
+        # Parsear si es quiz
+        variation_solution = "Solución no generada en modo simple."
+        
+        if exercise_type == 'multiple_choice':
+            try:
+                import json
+                import re
+                clean_content = variation_content.replace('```json', '').replace('```', '').strip()
+                
+                # Fix common latex backslash issues in json string
+                # Retain escaped unicode but double escape other backslashes if single
+                # Simple approach: use raw string or manual Escape for parsing if validation fails
+                
+                # strict=False helps with newlines. For backslashes:
+                # If LLM returns: "question": "\frac{1}{2}" -> JSON sees \f (formfeed).
+                # To be valid JSON it should be "\\frac{1}{2}".
+                # We try to fix single backslashes that are not valid escapes.
+                # Only if strict load fails? Or pre-process.
+                # A safe heuristic: replace single \ with \\ if not followed by " or \ or / or b/f/n/r/t/u
+                
+                try:
+                     data = json.loads(clean_content, strict=False)
+                except json.JSONDecodeError:
+                    # Fallback: escape all backslashes that might be latex
+                    escaped_content = clean_content.replace('\\', '\\\\') 
+                    # But this double escapes valid json escapes like \" -> \\" which breaks string end
+                    # Better: use a specialized parser or regex fix? 
+                    # Simple fix: if it fails, try lenient regex extraction or manual string parsing
+                    # For now, let's try strict=False with a simple replace for common latex cmds
+                    clean_content_fixed = clean_content.replace('\\', '\\\\').replace('\\\\"', '\\"')
+                    data = json.loads(clean_content_fixed, strict=False)
+
+                variation_content = f"{data['question']}\n\n"
+                for opt, text in data['options'].items():
+                    variation_content += f"- **{opt})** {text}\n"
+                
+                variation_solution = f"**Respuesta Correcta: {data['correct_option']}**\n\n{data['explanation']}"
+            except Exception as e:
+                logger.error(f"Error parseando JSON de quiz en base variation: {e}")
+                # variation_content se queda con el raw
         
         return {
-            'original_label': exercise.get('label'),
-            'original_content': exercise.get('content'),
             'variation_content': variation_content,
-            'original_analysis': analysis,
-            'original_frontmatter': exercise.get('frontmatter', {})
+            'variation_solution': variation_solution,
+            'original_frontmatter': exercise.get('frontmatter', {}),
+            'type': exercise_type
         }
     
     def generate_variation_with_solution(self, exercise: Dict, analysis: Dict) -> Optional[Dict]:

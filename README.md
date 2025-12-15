@@ -17,7 +17,7 @@ El contenido base del curso se gestiona y despliega en **[Curvenote](https://gla
 - **Formato consistente**: Genera archivos en formato MyST/Markdown compatible con Curvenote
 - **Multi-proveedor**: Soporte para OpenAI (GPT-4), Anthropic (Claude 3) y Google (Gemini 1.5).
 - **RAG (Retrieval-Augmented Generation)**: Utiliza apuntes de clase y ejercicios existentes para dar contexto.
-- **Modo Creación**: Genera ejercicios nuevos desde cero basados en temas y tags. del curso
+- **Modo Creación**: Genera ejercicios nuevos desde cero basados en temas y tags del curso
 
 ## Requisitos
 
@@ -52,6 +52,7 @@ pip install -r requirements.txt
    **Obtener API keys**:
    - OpenAI: https://platform.openai.com/api-keys
    - Anthropic: https://console.anthropic.com/
+   - Google: https://console.cloud.google.com/ai/generative-ai/credentials
 
 ## Uso
 
@@ -78,7 +79,7 @@ python evolutia.py \
   - Opciones: `media`, `alta` (default), `muy_alta`
 
 - `--api`: Proveedor de API de IA
-  - Opciones: `openai` (default), `anthropic`, `local`
+  - Opciones: `openai` (default), `anthropic`, `local`, `gemini`
 
 - `--base_path`: Ruta base del proyecto (default: directorio actual)
 
@@ -138,6 +139,41 @@ python evolutia.py \
   --num_ejercicios 4 \
   --use_rag \
   --output examenes/examen3
+```
+
+### Modo Creación (Nuevo)
+Genera ejercicios totalmente nuevos desde cero, basándose en un tema y tags opcionales, en lugar de variar ejercicios existentes.
+
+**Generar 3 ejercicios nuevos de variable compleja:**
+```bash
+python evolutia.py \
+  --mode creation \
+  --tema numeros_complejos \
+  --num_ejercicios 3 \
+  --output examenes/parcial1
+```
+
+**Generar con tags específicos y usar Gemini:**
+```bash
+python evolutia.py \
+  --mode creation \
+  --tema analisis_vectorial \
+  --tags stokes divergencia \
+  --api gemini \
+  --output examenes/quiz3
+```
+
+### Tipos de Ejercicio
+Ahora puedes elegir entre ejercicios de desarrollo (default) o selección única (quiz).
+
+**Generar pregunta de Selección Única (Conceptual):**
+```bash
+python evolutia.py \
+  --mode creation \
+  --tema matrices \
+  --type multiple_choice \
+  --api anthropic \
+  --output examenes/quiz_rapido
 ```
 
 ## Uso de LLM local (offline)

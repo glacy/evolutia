@@ -148,6 +148,14 @@ Ejemplos:
     )
 
     parser.add_argument(
+        '--type',
+        type=str,
+        choices=['development', 'multiple_choice'],
+        default='development',
+        help='Tipo de ejercicio: development (desarrollo, default) o multiple_choice (selección única)'
+    )
+
+    parser.add_argument(
         '--tags',
         type=str,
         nargs='+',
@@ -363,7 +371,12 @@ Ejemplos:
                 # Intentar variar un poco los tags si es posible para tener diversidad
                 # Por ahora usamos los mismos
                 
-                variation = generator.generate_new_exercise_from_topic(current_topic, current_tags, difficulty=args.complejidad)
+                variation = generator.generate_new_exercise_from_topic(
+                    current_topic, 
+                    current_tags, 
+                    difficulty=args.complejidad,
+                    exercise_type=args.type
+                )
                 
                 if variation:
                     valid_variations.append(variation)
@@ -387,7 +400,11 @@ Ejemplos:
                 
                 try:
                     # Generar variación
-                    variation = generator.generate_variation(ejercicio_base, analysis)
+                    variation = generator.generate_variation(
+                        ejercicio_base, 
+                        analysis,
+                        exercise_type=args.type
+                    )
                     
                     if variation:
                         # Validar si es realmente más compleja (o consistente en caso de RAG)
@@ -397,13 +414,16 @@ Ejemplos:
                              validation = validator.validate(variation, ejercicio_base)
                              is_valid = validation['is_consistent']
                         else:
-                            # Validación clásica de complejidad
-                            var_analysis = analyzer.analyze({
-                                'content': variation['variation_content'], 
-                                'solution': variation['variation_solution']
-                            })
-                            validation = validator.validate(var_analysis, analysis)
-                            is_valid = validation['is_more_complex']
+                            # Validar complejidad
+                            # var_analysis ya se calcula dentro de validate? No, validate llama a analyze internamente
+                            # validate(self, original_exercise, original_analysis, variation)
+                            
+                            validation = validator.validate(ejercicio_base, analysis, variation)
+                            
+                            if validation['is_valid']:
+                                is_valid = True
+                            else:
+                                is_valid = False
                         
                         if is_valid:
                             valid_variations.append(variation)
@@ -411,8 +431,10 @@ Ejemplos:
                         else:
                             logger.info("Variación rechazada por validación")
                 except Exception as e:
+                    import traceback
                     logger.error(f"Error generando variación: {e}")
-                
+                    traceback.print_exc()
+                    continue              
                 attempts += 1
         
 
