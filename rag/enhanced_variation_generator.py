@@ -230,6 +230,20 @@ class EnhancedVariationGenerator(VariationGenerator):
                 'related_concepts_count': len(context.get('related_concepts', [])),
                 'reading_context_count': len(context.get('reading_context', []))
             }
+             # Extraer references de similar_exercises y reading_context
+             refs = []
+             for ex in context.get('similar_exercises', []):
+                 # Prefer label from metadata, fallback to id
+                 ref_label = ex.get('metadata', {}).get('label') or ex.get('id')
+                 if ref_label: refs.append(ref_label)
+             
+             for reading in context.get('reading_context', []):
+                  # Reading may not have label, use id or source
+                  ref_src = reading.get('metadata', {}).get('source') or reading.get('id')
+                  if ref_src: refs.append(ref_src)
+                  
+             if refs:
+                 variation['rag_references'] = refs
             
         return variation
     

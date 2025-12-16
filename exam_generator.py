@@ -245,6 +245,10 @@ class ExamGenerator:
                 # Add original label for traceability
                 if 'original_label' in variation and variation['original_label']:
                      current_metadata['based_on'] = variation['original_label']
+                
+                # Add RAG references if available
+                if 'rag_references' in variation and variation['rag_references']:
+                    current_metadata['rag_references'] = variation['rag_references']
 
                 # Archivo de ejercicio
                 exercise_content = variation.get('variation_content', '')
