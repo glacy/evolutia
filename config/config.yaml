@@ -1,5 +1,5 @@
 api:
-  default_provider: openai
+  default_provider: gemini
   openai:
     model: gpt-4
     temperature: 0.7
@@ -15,7 +15,7 @@ api:
     temperature: 0.7
     max_tokens: 2000
   gemini:
-    model: gemini-2.5-flash
+    model: gemini-1.5-pro
     temperature: 0.7
     max_tokens: 8192
 paths:

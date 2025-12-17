@@ -102,8 +102,8 @@ Ejemplos:
         '--api',
         type=str,
         choices=['openai', 'anthropic', 'local', 'gemini'],
-        default='openai',
-        help='Proveedor de API de IA (default: openai)'
+        default=None,
+        help='Proveedor de API de IA (default: definido en config.yaml o openai)'
     )
     
     parser.add_argument(
@@ -208,6 +208,20 @@ Ejemplos:
     if not base_path.exists():
         logger.error(f"Ruta base no existe: {base_path}")
         return 1
+
+    # Determinar proveedor de API (CLI > Config > Default)
+    if args.api is None:
+        try:
+            config_path = base_path / 'evolutia' / 'config' / 'config.yaml'
+            if config_path.exists():
+                import yaml
+                full_config = yaml.safe_load(config_path.read_text(encoding='utf-8'))
+                args.api = full_config.get('api', {}).get('default_provider', 'openai')
+            else:
+                args.api = 'openai'
+        except Exception as e:
+            logger.warning(f"No se pudo leer config para default provider: {e}")
+            args.api = 'openai'
     
     output_dir = None
     exam_number = 1
