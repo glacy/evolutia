@@ -187,15 +187,21 @@ Ejemplos:
         action='store_true',
         help='Listar todos los ejercicios encontrados y sus etiquetas sin generar nada'
     )
+
+    parser.add_argument(
+        '--query',
+        type=str,
+        help='Realizar una búsqueda en el RAG y mostrar resultados (requiere RAG configurado)'
+    )
     
     args = parser.parse_args()
     
     # Validar argumentos requeridos dependiendo del modo
-    if not args.reindex and not args.list:
+    if not args.reindex and not args.list and not args.query:
         if not args.tema:
-            parser.error("el argumento --tema es requerido (a menos que se use --reindex)")
+            parser.error("el argumento --tema es requerido (a menos que se use --reindex, --list o --query)")
         if not args.output:
-            parser.error("el argumento --output es requerido (a menos que se use --reindex)")
+            parser.error("el argumento --output es requerido (a menos que se use --reindex, --list o --query)")
     
     # Validar argumentos
     base_path = Path(args.base_path).resolve()
@@ -230,9 +236,9 @@ Ejemplos:
     logger.info(f"API: {args.api}")
     logger.info(f"RAG: {'Habilitado' if args.use_rag else 'Deshabilitado'}")
     
-    # Inicializar RAG si está habilitado
+    # Inicializar RAG si está habilitado o si se va a hacer una consulta
     rag_manager = None
-    if args.use_rag:
+    if args.use_rag or args.query:
         if not RAG_AVAILABLE:
             logger.error("RAG solicitado pero no disponible. Instala: pip install chromadb sentence-transformers")
             return 1
@@ -240,18 +246,60 @@ Ejemplos:
         try:
             config_path = base_path / 'evolutia' / 'config' / 'config.yaml'
             rag_manager = RAGManager(config_path=config_path, base_path=base_path)
+            # Solo indexar si se pide explícitamente reindexar o si estamos generando
+            # Para query, solo inicializamos la conexión
             rag_manager.initialize(force_reindex=args.reindex)
-            logger.info("Sistema RAG inicializado")
-            
+                
             # Si solo se solicitó reindexar (y no hay tema/output), terminar aquí
             if args.reindex and not (args.tema and args.output):
                 logger.info("Reindexado completado exitosamente.")
                 return 0
+
+            # Si se solicitó QUERY, ejecutar consulta y salir
+            if args.query:
+                retriever = rag_manager.get_retriever()
+                if not retriever:
+                    logger.error("No se pudo obtener el retriever del RAG (¿está indexado?)")
+                    return 1
                 
+                logger.info(f"Ejecutando consulta RAG: '{args.query}'")
+                results = retriever.hybrid_search(args.query, top_k=5)
+                
+                print(f"\n{'='*80}")
+                print(f"RESULTADOS DE BÚSQUEDA RAG: '{args.query}'")
+                print(f"{'='*80}\n")
+                
+                if not results:
+                    print("No se encontraron resultados relevantes.")
+                else:
+                    for i, res in enumerate(results, 1):
+                        meta = res.get('metadata', {})
+                        doc_type = meta.get('type', 'desconocido')
+                        similarity = res.get('similarity', 0)
+                        source = meta.get('source', meta.get('source_file', 'N/A'))
+                        
+                        # Intentar mostrar ruta relativa para limpieza
+                        try:
+                            source_path = Path(source)
+                            # Si es absoluta y está dentro de base_path, hacerla relativa
+                            if source_path.is_absolute() and str(base_path) in str(source_path):
+                                source = f"./{source_path.relative_to(base_path)}"
+                        except Exception:
+                            pass # Mantener source original si falla
+                            
+                        content = res.get('content', '').replace('\n', ' ')
+                        
+                        print(f"[{i}] {doc_type.upper()} ({similarity:.2f}) | Fuente: {source}")
+                        print(f"    {content[:300]}...")
+                        print("-" * 60)
+                
+                print(f"\n{'='*80}\n")
+                return 0
+
         except Exception as e:
             logger.error(f"Error inicializando RAG: {e}")
-            if args.use_rag:
-                logger.error("No se puede continuar sin RAG. Usa --use_rag solo si RAG está configurado.")
+            if args.use_rag or args.query:
+                logger.error("No se puede continuar sin RAG.")
                 return 1
     
     try:
