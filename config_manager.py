@@ -34,9 +34,21 @@ EXCLUDED_DIRS = {
 }
 
 class ConfigManager:
-    def __init__(self, base_path: Path):
+    def __init__(self, base_path: Path, config_path: Path = None):
         self.base_path = Path(base_path)
-        self.config_path = self.base_path / 'evolutia' / 'config' / 'config.yaml'
+        
+        if config_path:
+            self.config_path = Path(config_path)
+        else:
+            # Intentar encontrar evolutia_config.yaml en la raíz
+            root_config = self.base_path / 'evolutia_config.yaml'
+            if root_config.exists():
+                self.config_path = root_config
+            else:
+               # Default interno
+               self.config_path = self.base_path / 'evolutia' / 'config' / 'config.yaml'
+        
+        logger.info(f"Usando archivo de configuración: {self.config_path}")
         
     def load_current_config(self) -> Dict[str, Any]:
         """Carga la configuración actual si existe."""
@@ -135,12 +147,20 @@ class ConfigManager:
         logger.info(f"Configuración actualizada en {self.config_path}")
 
 def main():
-    base_path = Path.cwd()
-    # Si estamos ejecutando desde evolutia, subir un nivel
-    if base_path.name == 'evolutia':
+    import argparse
+    parser = argparse.ArgumentParser(description='Gestor de configuración automática de Evolutia')
+    parser.add_argument('--config', type=str, help='Ruta al archivo de configuración a actualizar')
+    parser.add_argument('--base_path', type=str, default='.', help='Ruta base del proyecto')
+    args = parser.parse_args()
+
+    base_path = Path(args.base_path).resolve()
+    # Si estamos ejecutando desde evolutia (y no se dio base_path explícito), subir un nivel
+    if args.base_path == '.' and base_path.name == 'evolutia':
         base_path = base_path.parent
         
-    manager = ConfigManager(base_path)
+    config_path = Path(args.config) if args.config else None
+        
+    manager = ConfigManager(base_path, config_path)
     manager.update_config()
 
 if __name__ == '__main__':

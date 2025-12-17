@@ -40,7 +40,15 @@ class RAGManager:
     def _load_config(self, config_path: Optional[Path]) -> Dict[str, Any]:
         """Carga la configuración de RAG."""
         if config_path is None:
-            config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
+            # Intentar buscar en root, luego default interno
+            import sys
+            # Si estamos en un paquete o script, buscar relativo
+            script_dir = Path(__file__).parent.parent
+            root_config = script_dir.parent / 'evolutia_config.yaml'
+            if root_config.exists():
+                config_path = root_config
+            else:
+               config_path = script_dir / 'config' / 'config.yaml'
         
         try:
             with open(config_path, 'r', encoding='utf-8') as f:

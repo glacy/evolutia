@@ -114,6 +114,12 @@ Ejemplos:
     )
     
     parser.add_argument(
+        '--config',
+        type=str,
+        help='Ruta al archivo de configuración (default: busca evolutia_config.yaml en root o usa el interno)'
+    )
+    
+    parser.add_argument(
         '--examen_num',
         type=int,
         help='Número del examen (si no se especifica, se infiere del directorio)'
@@ -210,11 +216,31 @@ Ejemplos:
         logger.error(f"Ruta base no existe: {base_path}")
         return 1
 
+    # Determinar ruta de configuración (CLI > Root > Default)
+    config_path = None
+    
+    # 1. CLI Argument
+    if args.config:
+        config_path = Path(args.config).resolve()
+        if not config_path.exists():
+            logger.error(f"Archivo de configuración no encontrado: {config_path}")
+            return 1
+        logger.info(f"Usando configuración desde argumento: {config_path}")
+    else:
+        # 2. Root config (evolutia_config.yaml)
+        root_config = base_path / 'evolutia_config.yaml'
+        if root_config.exists():
+            config_path = root_config
+            logger.info(f"Usando configuración desde raíz del proyecto: {config_path}")
+        else:
+            # 3. Default internal config
+            config_path = base_path / 'evolutia' / 'config' / 'config.yaml'
+            # logger.info(f"Usando configuración interna por defecto: {config_path}")
+
     # Determinar proveedor de API (CLI > Config > Default)
     if args.api is None:
         try:
-            config_path = base_path / 'evolutia' / 'config' / 'config.yaml'
-            if config_path.exists():
+            if config_path and config_path.exists():
                 import yaml
                 full_config = yaml.safe_load(config_path.read_text(encoding='utf-8'))
                 args.api = full_config.get('api', {}).get('default_provider', 'openai')
@@ -259,7 +285,6 @@ Ejemplos:
             return 1
         
         try:
-            config_path = base_path / 'evolutia' / 'config' / 'config.yaml'
             rag_manager = RAGManager(config_path=config_path, base_path=base_path)
             # Solo indexar si se pide explícitamente reindexar o si estamos generando
             # Para query, solo inicializamos la conexión
@@ -429,10 +454,10 @@ Ejemplos:
         logger.info("Paso 4: Generando variaciones con mayor complejidad...")
         
         # Cargar configuración de API
-        config_path = base_path / 'evolutia' / 'config' / 'config.yaml'
+        # Cargar configuración de API
         import yaml
         api_config = {}
-        if config_path.exists():
+        if config_path and config_path.exists():
             try:
                 full_config = yaml.safe_load(config_path.read_text(encoding='utf-8'))
                 api_config = full_config.get('api', {}).get(args.api, {})
