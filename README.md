@@ -117,6 +117,8 @@ Si no se indica un tema, el sistema buscará en todos los archivos disponibles.
 
 - `--list`: Lista todos los ejercicios encontrados en los temas seleccionados y muestra sus etiquetas, archivo origen y preview.
 
+- `--query`: Realiza una búsqueda semántica en la base de datos RAG y muestra los fragmentos de texto más relevantes encontrados. Útil para verificar qué "sabe" el sistema sobre un tema.
+
 ### Ejemplos
 
 **Generar examen de análisis vectorial con 4 ejercicios:**
@@ -162,6 +164,15 @@ python evolutia.py \
   --use_rag \
   --output examenes/examen3
 ```
+
+### Herramienta de Consulta RAG
+Puedes "preguntarle" al sistema qué información tiene sobre un concepto específico sin generar nada:
+
+```bash
+python evolutia.py --query "Teorema de Stokes"
+```
+
+Esto mostrará una lista de ejercicios y lecturas relevantes con su puntuación de similitud.
 
 ### Modo Creación (Nuevo)
 Genera ejercicios totalmente nuevos desde cero, basándose en un tema y tags opcionales, en lugar de variar ejercicios existentes.
@@ -368,6 +379,12 @@ source: ai_variation
 tags: [autovalores, diagonalizacion, procedimental, intermedio] # <--- Tags heredados
 original_subject: Matrices y Algebra Lineal
 complexity: media
+mode: variation          # <--- Nuevo: Modo de generación
+target_difficulty: alta  # <--- Nuevo: Dificultad objetivo
+based_on: ex1-e1         # <--- Nuevo: ID del ejercicio semilla
+rag_references:          # <--- Nuevo: Contexto usado (con --use_rag)
+  - ex5-e2
+  - semana3_lectura.md
 ---
 ```
 
@@ -426,6 +443,16 @@ Puedes personalizar el comportamiento editando `config/config.yaml`:
 - **Rutas**: Especificar directorios de materiales
 - **Complejidad**: Ajustar umbrales de validación
 - **Exámenes**: Configurar valores por defecto
+
+### Cambiar Proveedor por Defecto
+Puedes definir qué IA usar si no se especifica el argumento `--api`:
+
+```yaml
+api:
+  default_provider: gemini  # openai, anthropic, gemini, local
+  gemini:
+    model: gemini-1.5-pro   # Cambiar modelo específico
+```
 
 ## Estrategias de aumento de complejidad
 
