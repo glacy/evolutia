@@ -471,6 +471,8 @@ NuevoCurso/
 └── temas/               # Carpetas de contenido
 ```
 
+> **Guía Detallada**: Para instrucciones paso a paso sobre cómo usar Git Submodules, consulta [GUIDE_SUBMODULES.md](GUIDE_SUBMODULES.md).
+
 ## Estrategias de aumento de complejidad
 
 El sistema aplica las siguientes estrategias para aumentar la complejidad:
