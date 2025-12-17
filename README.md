@@ -101,6 +101,8 @@ Si no se indica un tema, el sistema buscará en todos los archivos disponibles.
 - `--label`: ID(s) específico(s) del ejercicio a variar (ej: `ex1-s1` o múltiples: `ex1-s1 ex2-s1`).
   - Si se usa, ignora `--num_ejercicios` y genera variaciones **solo** para los ejercicios indicados.
 
+- `--config`: Ruta a un archivo de configuración externo (ej: `./config_nuevocurso.yaml`). (default: busca `evolutia_config.yaml` en la raíz, o usa el interno).
+
 - `--base_path`: Ruta base del proyecto (default: directorio actual)
 
 - `--examen_num`: Número del examen (se infiere del nombre del directorio si no se especifica)
@@ -454,6 +456,21 @@ api:
     model: gemini-1.5-pro   # Cambiar modelo específico
 ```
 
+### Configuración Avanzada / Multi-Curso
+
+Para usar `evolutia` en múltiples cursos o sin modificar el código fuente:
+
+1.  **Archivo de Configuración Externo**: Crea un archivo `evolutia_config.yaml` en la raíz de tu proyecto (junto a la carpeta `evolutia/`). El sistema lo detectará automáticamente.
+2.  **Argumento CLI**: Usa `--config ruta/a/mi_config.yaml` para especificar un archivo arbitrario.
+
+**Ejemplo de estructura recomendada para un nuevo curso:**
+```
+NuevoCurso/
+├── evolutia/            # Carpeta copiada o submódulo git
+├── evolutia_config.yaml # Configuración específica de este curso
+└── temas/               # Carpetas de contenido
+```
+
 ## Estrategias de aumento de complejidad
 
 El sistema aplica las siguientes estrategias para aumentar la complejidad:
@@ -517,12 +534,16 @@ El proyecto incluye una herramienta para sincronizar automáticamente el archivo
 Este script escanea el directorio del proyecto para:
 1. Identificar carpetas de temas existentes.
 2. Leer los archivos de lectura (`semana*_lectura.md`) y extraer las palabras clave (`keywords`) del frontmatter.
-3. Actualizar `evolutia/config/config.yaml` con esta información.
+3. Actualizar el archivo de configuración activo (`evolutia_config.yaml` o interno).
 
 **Uso:**
 
 ```bash
+# Uso básico (detecta configuración automáticamente)
 python evolutia/config_manager.py
+
+# Uso con archivo específico
+python evolutia/config_manager.py --config ./evolutia_config.yaml
 ```
 
 Ejecuta este script cada vez que agregues nuevos temas o modifiques las palabras clave en los materiales de lectura.
