@@ -33,12 +33,12 @@ logger = logging.getLogger(__name__)
 
 class EnhancedVariationGenerator(VariationGenerator):
     """Genera variaciones usando RAG para enriquecer el contexto."""
-    
+
     def __init__(self, api_provider: str = "openai", retriever: RAGRetriever = None,
                  context_enricher: ContextEnricher = None):
         """
         Inicializa el generador mejorado.
-        
+
         Args:
             api_provider: Proveedor de API ('openai' o 'anthropic')
             retriever: Instancia de RAGRetriever
@@ -55,23 +55,23 @@ class EnhancedVariationGenerator(VariationGenerator):
                 logger.warning("GOOGLE_API_KEY no encontrada en variables de entorno")
             else:
                 genai.configure(api_key=api_key)
-    
+
     def _retrieve_context(self, exercise: Dict, analysis: Dict) -> Dict:
         """
         Recupera contexto relevante usando RAG.
-        
+
         Args:
             exercise: Información del ejercicio original
             analysis: Análisis de complejidad
-            
+
         Returns:
             Diccionario con contexto recuperado
         """
         if not self.retriever:
             return {}
-        
+
         context = {}
-        
+
         try:
             # Buscar ejercicios similares
             exercise_content = exercise.get('content', '')
@@ -81,19 +81,19 @@ class EnhancedVariationGenerator(VariationGenerator):
                 top_k=5
             )
             context['similar_exercises'] = similar
-            
+
             # Buscar conceptos relacionados
             concepts = analysis.get('concepts', [])
             if concepts:
                 related = self.retriever.retrieve_related_concepts(concepts, top_k=3)
                 context['related_concepts'] = related
-            
+
             # Buscar contexto de lecturas
             topic = exercise.get('source_file', {}).name if hasattr(exercise.get('source_file'), 'name') else ''
             if topic:
                 reading_context = self.retriever.retrieve_reading_context(topic, top_k=2)
                 context['reading_context'] = reading_context
-            
+
             # Buscar ejercicios con complejidad similar (para referencia)
             target_complexity = analysis.get('total_complexity', 0)
             if target_complexity > 0:
@@ -103,34 +103,36 @@ class EnhancedVariationGenerator(VariationGenerator):
                     top_k=3
                 )
                 context['complexity_examples'] = complexity_examples
-        
+
         except Exception as e:
             logger.warning(f"Error recuperando contexto RAG: {e}")
             context = {}
-        
+
         return context
-    
-    def _create_prompt(self, exercise: Dict, analysis: Dict) -> str:
+
+    def _create_prompt(self, exercise: Dict, analysis: Dict, context: Dict = None) -> str:
         """
         Crea el prompt enriquecido con contexto RAG.
-        
+
         Args:
             exercise: Información del ejercicio original
             analysis: Análisis de complejidad del ejercicio
-            
+            context: Contexto RAG opcional (para evitar re-búsqueda)
+
         Returns:
             Prompt enriquecido
         """
         # Crear prompt base usando el método del padre
         base_prompt = super()._create_prompt(exercise, analysis)
-        
+
         # Si no hay retriever, usar prompt base
         if not self.retriever:
             return base_prompt
-        
-        # Recuperar contexto
-        context = self._retrieve_context(exercise, analysis)
-        
+
+        # Recuperar contexto si no se proporciona
+        if context is None:
+            context = self._retrieve_context(exercise, analysis)
+
         # Enriquecer prompt con contexto
         enriched_prompt = self.context_enricher.create_enriched_prompt(
             base_prompt,
@@ -138,9 +140,9 @@ class EnhancedVariationGenerator(VariationGenerator):
             analysis,
             context
         )
-        
+
         return enriched_prompt
-    
+
     def generate_variation(self, exercise: Dict, analysis: Dict, exercise_type: str = "development") -> Optional[Dict]:
         """
         Genera una variación de un ejercicio existente.
@@ -148,12 +150,12 @@ class EnhancedVariationGenerator(VariationGenerator):
         """
         # 1. Recuperar contexto RAG si aplica
         context = self._retrieve_context(exercise, analysis)
-        
-        # 2. Enriquecer contexto
-        context_str = self.context_enricher.format_context_dict(context)
-        
-        # 3. Construir prompt según tipo
+
+        # 2. Construir prompt según tipo
         if exercise_type == 'multiple_choice':
+            # Enriquecer contexto para string
+            context_str = self.context_enricher.format_context_dict(context)
+
             # Para quiz, usamos el contenido del ejercicio como base
             context_info = {
                 'content': f"Ejercicio Base:\n{exercise.get('content')}\n\nSolución Base:\n{(exercise.get('solution') or '')[:500]}...\n\nContexto Adicional:\n{context_str}"
@@ -161,13 +163,9 @@ class EnhancedVariationGenerator(VariationGenerator):
             prompt = self._create_quiz_prompt(context_info)
         else:
             # Flujo normal de variación desarrollo (llamando a lógica padre modificada o directa)
-            # Para mantener compatibilidad con RAG, inyectamos contexto en prompt
-            # Hack: Modificar temporalmente el contenido para que el prompt base incluya el contexto
-            # O mejor, usar _create_prompt del padre y añadirle el contexto manualmente
-            
-            prompt = self._create_prompt(exercise, analysis)
-            prompt += f"\n\nCONTEXTO ADICIONAL DEL CURSO:\n{context_str}"
-        
+            # Pasamos el contexto ya recuperado a _create_prompt
+            prompt = self._create_prompt(exercise, analysis, context=context)
+
         # 4. Generar variación
         content = None
         if self.api_provider == "openai":
@@ -178,20 +176,20 @@ class EnhancedVariationGenerator(VariationGenerator):
             content = self._call_gemini_api(prompt, model=self.model_name)
         elif self.api_provider == "local":
             content = self._call_local_api(prompt)
-        
+
         if not content:
             return None
-        
+
         # 5. Parsear respuesta
         variation_content = ""
         variation_solution = ""
-        
+
         if exercise_type == 'multiple_choice':
             try:
                 import json
                 import re
                 clean_content = content.replace('```json', '').replace('```', '').strip()
-                
+
                 # Fix common latex backslash issues in json string
                 try:
                      data = json.loads(clean_content, strict=False)
@@ -199,23 +197,23 @@ class EnhancedVariationGenerator(VariationGenerator):
                     # Fallback: simple escape for common latex backslashes
                     clean_content_fixed = clean_content.replace('\\', '\\\\').replace('\\\\"', '\\"')
                     data = json.loads(clean_content_fixed, strict=False)
-                
+
                 variation_content = f"{data['question']}\n\n"
                 for opt, text in data['options'].items():
                     variation_content += f"- **{opt})** {text}\n"
-                
+
                 variation_solution = f"**Respuesta Correcta: {data['correct_option']}**\n\n{data['explanation']}"
             except Exception as e:
                 logger.error(f"Error parseando JSON de quiz en variación: {e}")
                 variation_content = content
         else:
             variation_content = content
-            variation_solution = "Solución pendiente..." 
-            
+            variation_solution = "Solución pendiente..."
+
             # Intento de mejora de parsing standard si el modelo siguio instrucciones
-            parts = content.split("SOLUCIÓN REQUERIDA:") 
+            parts = content.split("SOLUCIÓN REQUERIDA:")
             # (Aunque esto depende del prompt base, asumimos comportamiento del nuevo prompt quiz o el base)
-        
+
         variation = {
             'variation_content': variation_content,
             'variation_solution': variation_solution,
@@ -223,7 +221,7 @@ class EnhancedVariationGenerator(VariationGenerator):
             'original_label': exercise.get('label'),
             'type': exercise_type
         }
-        
+
         if self.retriever and context:
              variation['rag_context'] = {
                 'similar_exercises_count': len(context.get('similar_exercises', [])),
@@ -236,34 +234,34 @@ class EnhancedVariationGenerator(VariationGenerator):
                  # Prefer label from metadata, fallback to id
                  ref_label = ex.get('metadata', {}).get('label') or ex.get('id')
                  if ref_label: refs.append(ref_label)
-             
+
              for reading in context.get('reading_context', []):
                   # Reading may not have label, use id or source
                   ref_src = reading.get('metadata', {}).get('source') or reading.get('id')
                   if ref_src: refs.append(ref_src)
-                  
+
              if refs:
                  variation['rag_references'] = refs
-            
+
         return variation
-    
+
     def generate_variation_with_solution(self, exercise: Dict, analysis: Dict) -> Optional[Dict]:
         """
         Genera una variación con su solución usando RAG.
-        
+
         Args:
             exercise: Información del ejercicio original
             analysis: Análisis de complejidad del ejercicio original
-            
+
         Returns:
             Diccionario con variación y solución o None si hay error
         """
         # Generar variación (ya usa RAG)
         variation = self.generate_variation(exercise, analysis)
-        
+
         if not variation:
             return None
-        
+
         # Generar solución (usar método del padre)
         solution_prompt = f"""Eres un experto en métodos matemáticos para física e ingeniería. Resuelve el siguiente ejercicio paso a paso, mostrando todos los cálculos y procedimientos.
 
@@ -279,41 +277,43 @@ INSTRUCCIONES:
 6. Escribe en español
 
 GENERA LA SOLUCIÓN COMPLETA:"""
-        
+
         if self.api_provider == "openai":
             solution_content = self._call_openai_api(solution_prompt, model=self.model_name or "gpt-4")
         elif self.api_provider == "anthropic":
             solution_content = self._call_anthropic_api(solution_prompt, model=self.model_name or "claude-3-opus-20240229")
         elif self.api_provider == "local":
             solution_content = self._call_local_api(solution_prompt)
+        elif self.api_provider == "gemini":
+            solution_content = self._call_gemini_api(solution_prompt, model=self.model_name)
         else:
             solution_content = None
-        
+
         if solution_content:
             variation['variation_solution'] = solution_content
-        
+
         return variation
 
     def generate_new_exercise_from_topic(self, topic: str, tags: list = None, difficulty: str = "alta", exercise_type: str = "development") -> Optional[Dict]:
         """
         Genera un ejercicio nuevo desde cero basado en un tema y tags.
-        
+
         Args:
             topic: Tema principal (ej: "analisis_vectorial")
             tags: Lista de tags específicos (ej: ["stokes", "teorema"])
             difficulty: Nivel de dificultad (media, alta, muy_alta)
             exercise_type: Tipo de ejercicio ('development' o 'multiple_choice')
-            
+
         Returns:
             Diccionario con el nuevo ejercicio y su solución
         """
         if not self.retriever:
             logger.info("Generando sin contexto RAG (retriever no disponible)")
             # Continuar sin contexto
-        
+
         tags = tags or []
         context = {}
-        
+
         # Normalizar topic para manejar lista o string
         if isinstance(topic, list):
             topic_list = topic
@@ -321,17 +321,17 @@ GENERA LA SOLUCIÓN COMPLETA:"""
         else:
             topic_list = [topic]
             topic_str = topic
-        
+
         if self.retriever:
             # 1. Recuperar contexto teórico
             reading_context = self.retriever.retrieve_reading_context(topic_str, top_k=3)
             context['reading_context'] = reading_context
-            
+
             # 2. Recuperar ejercicios relacionados para estilo
             search_terms = tags + topic_list
             related_exercises = self.retriever.retrieve_related_concepts(search_terms, top_k=3)
             context['related_exercises'] = related_exercises
-        
+
         # 3. Construir prompt
         # 3. Construir prompt
         if exercise_type == 'multiple_choice':
@@ -342,7 +342,7 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             prompt = self._create_quiz_prompt(context_info)
         else:
             prompt = self._create_new_exercise_prompt(topic, tags, context, difficulty)
-        
+
         # 4. Generar variación
         content = None
         if self.api_provider == "openai":
@@ -353,14 +353,14 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             content = self._call_gemini_api(prompt, model=self.model_name)
         elif self.api_provider == "local":
             content = self._call_local_api(prompt)
-        
+
         if not content:
             return None
-            
+
         # 5. Parsear respuesta
         exercise_text = ""
         solution_text = ""
-        
+
         if exercise_type == 'multiple_choice':
             try:
                 import json
@@ -368,12 +368,12 @@ GENERA LA SOLUCIÓN COMPLETA:"""
                 clean_content = content.replace('```json', '').replace('```', '').strip()
                 # strict=False permite caracteres de control como saltos de línea dentro de strings
                 data = json.loads(clean_content, strict=False)
-                
+
                 # Formatear como ejercicio
                 exercise_text = f"{data['question']}\n\n"
                 for opt, text in data['options'].items():
                     exercise_text += f"- **{opt})** {text}\n"
-                
+
                 # Formatear solución
                 solution_text = f"**Respuesta Correcta: {data['correct_option']}**\n\n{data['explanation']}"
             except Exception as e:
@@ -390,10 +390,10 @@ GENERA LA SOLUCIÓN COMPLETA:"""
             else:
                 exercise_text = content
                 solution_text = ""
-                
+
         variation_content = exercise_text
         variation_solution = solution_text
-            
+
         return {
             'variation_content': variation_content,
             'variation_solution': variation_solution,
@@ -407,19 +407,19 @@ GENERA LA SOLUCIÓN COMPLETA:"""
 
     def _create_new_exercise_prompt(self, topic: str, tags: list, context: Dict, difficulty: str) -> str:
         """Crea el prompt para generar un ejercicio nuevo."""
-        
+
         context_str = self.context_enricher.format_context_dict(context)
         tags_str = ", ".join(tags)
-        
+
         # Mapeo de dificultad a instrucciones
         diff_instructions = {
             "media": "El nivel debe ser 'Intermedio'. Enfócate en la aplicación directa de conceptos.",
             "alta": "El nivel debe ser 'Avanzado'. Requiere combinar conceptos o realizar demostraciones no triviales.",
             "muy_alta": "El nivel debe ser 'Desafío / Experto'. Requiere demostraciones abstractas, casos límite o síntesis creativa de múltiples temas."
         }
-        
+
         difficulty_instruction = diff_instructions.get(difficulty, diff_instructions["alta"])
-        
+
         return f"""Eres un profesor experto en Métodos Matemáticos para Física e Ingeniería.
 Tu tarea es CREAR UN NUEVO EJERCICIO DE EXAMEN desde cero.
 No debes copiar los ejemplos, sino usar su estilo y nivel de dificultad como inspiración.
@@ -452,19 +452,19 @@ SOLUCIÓN REQUERIDA:
             model_name = model or "gemini-2.5-pro"
             # Mapeo de nombres si config usa short names
             if model_name == 'gemini': model_name = "gemini-2.5-pro"
-            
+
             gen_model = genai.GenerativeModel(model_name)
-            
+
             # Configurar generation config si es necesario (temperatura, etc)
             generation_config = genai.types.GenerationConfig(
                 temperature=0.7,
             )
-            
+
             response = gen_model.generate_content(
                 prompt,
                 generation_config=generation_config
             )
-            
+
             return response.text
         except Exception as e:
             logger.error(f"Error llamando a Gemini API: {e}")
