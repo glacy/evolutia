@@ -9,3 +9,5 @@ sentence-transformers>=2.3.1
 tqdm>=4.66.0
 httpx>=0.26.0
 jsonschema>=4.0.0
+pytest>=7.0.0
+mock>=4.0.0
