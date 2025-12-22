@@ -20,12 +20,7 @@ api:
     max_tokens: 8192
 paths:
   base_path: ..
-  materials_directories:
-  - analisis_vectorial
-  - edps
-  - espacios_vectoriales
-  - matrices
-  - numeros_complejos
+  materials_directories: []
 complexity:
   min_complexity_increase: 0.1
   min_improvements: 2
@@ -37,81 +32,18 @@ complexity:
     operations: 0.5
 exam:
   default:
-    subject: IF3602 - II semestre 2025
+    subject: Curso - Semestre 202X
     points_per_exercise: 25
     duration_hours: 2.0
-  keywords:
-    analisis_vectorial:
-    - Gauss
-    - Green
-    - Stokes
-    - coordenadas
-    - curvilíneas
-    - escalar
-    - integrales
-    - nabla
-    - operador
-    - producto
-    - teoremas
-    - vector
-    edps:
-    - contorno
-    - diferencial
-    - ecuación
-    - elíptica
-    - hiperbólica
-    - orden
-    - parabólica
-    - parcial
-    - problemas
-    - segundo
-    espacios_vectoriales:
-    - Gram-Schmidt
-    - descomposición
-    - espacio
-    - expansión
-    - hermítico
-    - identidad
-    - operador
-    - ortogonalidad
-    - ortogonalización
-    - propios
-    - valores
-    - vectores
-    matrices:
-    - autovalores
-    - autovectores
-    - determinantes
-    - diagonalización
-    - esperados
-    - incertidumbre
-    - matrices
-    - operadores
-    - probabilidad
-    - representación
-    - valores
-    numeros_complejos:
-    - Argand
-    - Euler
-    - complejos
-    - funciones
-    - hiperbólicas
-    - inversas
-    - logaritmo
-    - números
-    - operaciones
-    - potencias
-    - raíces
-    - representación
-    - trigonométricas
+  keywords: {}
 logging:
   level: INFO
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 rag:
   vector_store:
     type: chromadb
-    persist_directory: "~/evolutia_storage/vector_store"
-    collection_name: ejercicios_mmfi
+    persist_directory: "./storage/vector_store"
+    collection_name: "default_collection"
   embeddings:
     provider: openai
     model: text-embedding-3-small

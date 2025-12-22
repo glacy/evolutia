@@ -95,7 +95,8 @@ class RAGManager:
         try:
             # Crear un cliente ChromaDB compartido
             vs_config = self.config.get('vector_store', {})
-            persist_dir = Path(vs_config.get('persist_directory', './storage/vector_store'))
+            persist_dir_str = vs_config.get('persist_directory', './storage/vector_store')
+            persist_dir = Path(persist_dir_str).expanduser()
             persist_dir.mkdir(parents=True, exist_ok=True)
             
             try:
