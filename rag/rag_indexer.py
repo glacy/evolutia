@@ -148,13 +148,23 @@ class RAGIndexer:
             batch_size = self.config.get('embeddings', {}).get('batch_size', 100)
             embeddings = []
             
-            for i in range(0, len(texts), batch_size):
-                batch = texts[i:i + batch_size]
-                response = self.embedding_client.embeddings.create(
-                    model=self.embedding_model_name,
-                    input=batch
-                )
-                embeddings.extend([item.embedding for item in response.data])
+            # Filtrar textos vacíos para evitar error 400 de OpenAI
+            valid_texts = [t for t in texts if t and t.strip()]
+            if not valid_texts:
+                return []
+                
+            for i in range(0, len(valid_texts), batch_size):
+                batch = valid_texts[i:i + batch_size]
+                try:
+                    response = self.embedding_client.embeddings.create(
+                        model=self.embedding_model_name,
+                        input=batch
+                    )
+                    embeddings.extend([item.embedding for item in response.data])
+                except Exception as e:
+                    logger.error(f"Error en OpenAI embeddings: {e}")
+                    logger.error(f"Batch problemático: {batch}")
+                    raise
             
             return embeddings
         
@@ -244,6 +254,15 @@ class RAGIndexer:
         # Generar embeddings
         embeddings = self._generate_embeddings_batch(chunks)
         
+        # Sincronizar chunks con embeddings (por si se filtraron vacíos en _generate_embeddings_batch)
+        # Aunque aquí preferimos filtrar antes para mantener consistencia
+        valid_indices = [i for i, chunk in enumerate(chunks) if chunk and chunk.strip()]
+        chunks = [chunks[i] for i in valid_indices]
+        
+        if not chunks:
+            logger.warning(f"Ejercicio {exercise.get('label', 'unknown')} no tiene contenido válido para indexar")
+            return []
+
         # Crear IDs y documentos
         chunk_ids = []
         documents = []
@@ -292,6 +311,14 @@ class RAGIndexer:
         # Generar embeddings
         embeddings = self._generate_embeddings_batch(chunks)
         
+        # Sincronizar chunks con embeddings
+        valid_indices = [i for i, chunk in enumerate(chunks) if chunk and chunk.strip()]
+        chunks = [chunks[i] for i in valid_indices]
+        
+        if not chunks:
+            logger.warning(f"Lectura {metadata.get('title', 'unknown')} no tiene contenido válido para indexar")
+            return []
+
         # Crear IDs y documentos
         chunk_ids = []
         documents = []

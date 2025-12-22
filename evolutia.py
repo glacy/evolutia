@@ -289,55 +289,9 @@ Ejemplos:
         
         try:
             rag_manager = RAGManager(config_path=config_path, base_path=base_path)
-            # Solo indexar si se pide explícitamente reindexar o si estamos generando
-            # Para query, solo inicializamos la conexión
+            # Inicializar RAG (esto configura cliente y modelos)
             rag_manager.initialize(force_reindex=args.reindex)
-                
-            # Si solo se solicitó reindexar (y no hay tema/output), terminar aquí
-            if args.reindex and not (args.tema and args.output):
-                logger.info("Reindexado completado exitosamente.")
-                return 0
 
-            # Si se solicitó QUERY, ejecutar consulta y salir
-            if args.query:
-                retriever = rag_manager.get_retriever()
-                if not retriever:
-                    logger.error("No se pudo obtener el retriever del RAG (¿está indexado?)")
-                    return 1
-                
-                logger.info(f"Ejecutando consulta RAG: '{args.query}'")
-                results = retriever.hybrid_search(args.query, top_k=5)
-                
-                print(f"\n{'='*80}")
-                print(f"RESULTADOS DE BÚSQUEDA RAG: '{args.query}'")
-                print(f"{'='*80}\n")
-                
-                if not results:
-                    print("No se encontraron resultados relevantes.")
-                else:
-                    for i, res in enumerate(results, 1):
-                        meta = res.get('metadata', {})
-                        doc_type = meta.get('type', 'desconocido')
-                        similarity = res.get('similarity', 0)
-                        source = meta.get('source', meta.get('source_file', 'N/A'))
-                        
-                        # Intentar mostrar ruta relativa para limpieza
-                        try:
-                            source_path = Path(source)
-                            # Si es absoluta y está dentro de base_path, hacerla relativa
-                            if source_path.is_absolute() and str(base_path) in str(source_path):
-                                source = f"./{source_path.relative_to(base_path)}"
-                        except Exception:
-                            pass # Mantener source original si falla
-                            
-                        content = res.get('content', '').replace('\n', ' ')
-                        
-                        print(f"[{i}] {doc_type.upper()} ({similarity:.2f}) | Fuente: {source}")
-                        print(f"    {content[:300]}...")
-                        print("-" * 60)
-                
-                print(f"\n{'='*80}\n")
-                return 0
 
         except Exception as e:
             logger.error(f"Error inicializando RAG: {e}")
@@ -432,13 +386,57 @@ Ejemplos:
             exercises_with_analysis.append((exercise, analysis))
         
         # 3.5. Indexar materiales si RAG está habilitado y no está indexado
-        if args.use_rag and rag_manager:
+        if (args.use_rag or args.query) and rag_manager:
             if not rag_manager.is_indexed() or args.reindex:
                 logger.info("Indexando materiales en RAG...")
                 rag_manager.index_materials(materials, analyzer, clear_existing=args.reindex)
                 logger.info("Indexación completada")
             else:
                 logger.info("RAG ya está indexado, usando índice existente")
+            
+            # Si se solicitó QUERY, ejecutar la búsqueda ahora que tenemos el índice actualizado
+            if args.query:
+                retriever = rag_manager.get_retriever()
+                if not retriever:
+                    logger.error("No se pudo obtener el retriever del RAG")
+                    return 1
+                
+                logger.info(f"Ejecutando consulta RAG: '{args.query}'")
+                results = retriever.hybrid_search(args.query, top_k=5)
+                
+                print(f"\n{'='*80}")
+                print(f"RESULTADOS DE BÚSQUEDA RAG: '{args.query}'")
+                print(f"{'='*80}\n")
+                
+                if not results:
+                    print("No se encontraron resultados relevantes.")
+                else:
+                    for i, res in enumerate(results, 1):
+                        meta = res.get('metadata', {})
+                        doc_type = meta.get('type', 'desconocido')
+                        similarity = res.get('similarity', 0)
+                        source = meta.get('source', meta.get('source_file', 'N/A'))
+                        
+                        # Intentar mostrar ruta relativa para limpieza
+                        try:
+                            source_path = Path(source)
+                            if source_path.is_absolute() and str(base_path) in str(source_path):
+                                source = f"./{source_path.relative_to(base_path)}"
+                        except Exception:
+                            pass
+                            
+                        content = res.get('content', '').replace('\n', ' ')
+                        print(f"[{i}] {doc_type.upper()} ({similarity:.2f}) | Fuente: {source}")
+                        print(f"    {content[:300]}...")
+                        print("-" * 60)
+                
+                print(f"\n{'='*80}\n")
+            
+            # Si solo se solicitó reindexar o query (sin generar examen), terminar aquí
+            if (args.reindex or args.query) and not (args.tema and args.output):
+                if args.reindex:
+                    logger.info("Reindexado completado exitosamente.")
+                return 0
         
         # Ordenar por complejidad (mayor primero para seleccionar los más complejos como base)
         # Si RAG está habilitado, podríamos usar búsqueda semántica para seleccionar

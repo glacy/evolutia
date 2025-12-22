@@ -6,7 +6,7 @@ from typing import List, Dict, Set
 
 
 def extract_math_expressions(content: str) -> List[str]:
-    """
+    r"""
     Extrae todas las expresiones matemáticas del contenido.
 
     Busca expresiones en formato LaTeX:
