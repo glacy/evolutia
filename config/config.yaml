@@ -110,7 +110,7 @@ logging:
 rag:
   vector_store:
     type: chromadb
-    persist_directory: ./storage/vector_store
+    persist_directory: "~/evolutia_storage/vector_store"
     collection_name: ejercicios_mmfi
   embeddings:
     provider: openai
