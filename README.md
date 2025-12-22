@@ -33,6 +33,9 @@ El contenido base del curso se gestiona y despliega en **[Curvenote](https://gla
 ```bash
 cd evolutia
 pip install -r requirements.txt
+
+# Para correr las pruebas:
+python -m pytest tests/
 ```
 
 3. **Configurar API keys**:
@@ -101,7 +104,7 @@ Si no se indica un tema, el sistema buscará en todos los archivos disponibles.
 - `--label`: ID(s) específico(s) del ejercicio a variar (ej: `ex1-s1` o múltiples: `ex1-s1 ex2-s1`).
   - Si se usa, ignora `--num_ejercicios` y genera variaciones **solo** para los ejercicios indicados.
 
-- `--config`: Ruta a un archivo de configuración externo (ej: `./config_nuevocurso.yaml`). (default: busca `evolutia_config.yaml` en la raíz, o usa el interno).
+- `--config`: Ruta a un archivo de configuración externo (ej: `./mi_curso_config.yaml`). (default: busca `evolutia_config.yaml` en la raíz, o usa el interno).
 
 - `--base_path`: Ruta base del proyecto (default: directorio actual)
 
@@ -245,10 +248,10 @@ El sistema incluye un módulo RAG opcional que mejora significativamente la cali
 ### ¿Qué es RAG?
 
 RAG (Retrieval-Augmented Generation) es un sistema que:
-- **Indexa** todos tus materiales didácticos en una base de datos vectorial
-- **Busca** ejercicios similares y contexto relevante cuando generas variaciones
-- ** Enriquece** los prompts con información del curso para generar variaciones más coherentes
-- **Valida** consistencia comparando con ejercicios reales del curso
+- **Indexa** todos tus materiales didácticos (ejercicios, soluciones y **lecturas/teoría**)
+- **Busca** ejercicios similares y conceptos teóricos relevantes cuando generas variaciones
+- **Enriquece** los prompts con información del curso para generar variaciones más coherentes
+- **Valida** consistencia comparando con ejercicios y teoría reales del curso
 
 ### Ventajas de usar RAG
 
@@ -286,13 +289,16 @@ El índice se reutiliza automáticamente. Solo usa `--reindex` si cambias materi
 
 Edita `config/config.yaml` para personalizar RAG:
 
-```yaml
 rag:
+  vector_store:
+    # Recomendación: Usa una ruta local en WSL (~/...) para evitar errores de sincronización con OneDrive
+    persist_directory: "~/evolutia_storage/mi_curso"
+    collection_name: "mi_curso_coleccion"
   embeddings:
-    provider: openai  # o sentence-transformers (gratis pero más lento)
+    provider: openai
     model: text-embedding-3-small
   retrieval:
-    top_k: 5  # Número de ejercicios similares a recuperar
+    top_k: 5
     similarity_threshold: 0.7
 ```
 
@@ -442,9 +448,10 @@ examenes/examen3/
 Puedes personalizar el comportamiento editando `config/config.yaml`:
 
 - **APIs**: Configurar modelos y parámetros
-- **Rutas**: Especificar directorios de materiales
+- **Rutas**: Especificar directorios de materiales (dentro de `materials_directories`)
 - **Complejidad**: Ajustar umbrales de validación
-- **Exámenes**: Configurar valores por defecto
+- **Exámenes**: Configurar valores por defecto y **keywords** por tema
+- **RAG**: Definir persistencia (local vs nube) y nombres de colección
 
 ### Cambiar Proveedor por Defecto
 Puedes definir qué IA usar si no se especifica el argumento `--api`:
@@ -470,6 +477,8 @@ NuevoCurso/
 ├── evolutia_config.yaml # Configuración específica de este curso
 └── temas/               # Carpetas de contenido
 ```
+
+> **IMPORTANTE**: No edites `evolutia/config/config.yaml` para datos de un curso específico. Ese archivo es una plantilla del motor. Crea un `evolutia_config.yaml` en la raíz de tu proyecto para tus ajustes personales.
 
 > **Guía Detallada**: Para instrucciones paso a paso sobre cómo usar Git Submodules, consulta [GUIDE_SUBMODULES.md](GUIDE_SUBMODULES.md).
 
