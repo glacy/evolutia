@@ -395,9 +395,9 @@ class RAGIndexer:
             content_body = material.get('content_body', '')
             filename = str(material.get('file_path', ''))
             
-            # Heurística simple: Indexar como lectura si tiene "lectura" en el nombre 
+            # Heurística: Indexar como lectura si tiene "lectura" o "teoria" en el nombre 
             # y tiene contenido sustancial (> 200 chars)
-            if 'lectura' in filename.lower() and len(content_body) > 200:
+            if ('lectura' in filename.lower() or 'teoria' in filename.lower()) and len(content_body) > 200:
                 metadata = {
                     'title': material.get('frontmatter', {}).get('title', ''),
                     'subject': material.get('frontmatter', {}).get('subject', ''),

@@ -130,7 +130,8 @@ class MaterialExtractor:
                 continue
             
             material = self.extract_from_file(md_file)
-            if material['exercises'] or material['solutions']:
+            # Incluirlos si tienen ejercicios/soluciones O si parecen ser materiales de lectura/teoría
+            if material['exercises'] or material['solutions'] or 'lectura' in md_file.name.lower() or 'teoria' in md_file.name.lower():
                 materials.append(material)
         
         return materials
