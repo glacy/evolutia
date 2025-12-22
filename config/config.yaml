@@ -42,7 +42,7 @@ logging:
 rag:
   vector_store:
     type: chromadb
-    persist_directory: "./storage/vector_store"
+    persist_directory: "~/evolutia_storage/default_course"
     collection_name: "default_collection"
   embeddings:
     provider: openai
