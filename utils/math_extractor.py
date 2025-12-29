@@ -4,6 +4,13 @@ Utilidades para extraer y analizar expresiones matemáticas de archivos Markdown
 import re
 from typing import List, Dict, Set
 
+# Patrones comunes para variables
+# Variables latinas: \vec{A}, A, \mathbf{B}, etc.
+LATIN_PATTERN = re.compile(r'\\vec\{([A-Za-z])\}|\\mathbf\{([A-Za-z])\}|\\hat\{([A-Za-z])\}|([A-Za-z])(?![a-z])')
+
+# Letras griegas: \alpha, \beta, \theta, etc.
+GREEK_PATTERN = re.compile(r'\\(alpha|beta|gamma|delta|epsilon|theta|phi|rho|omega|sigma|lambda|mu|nu|pi|tau)')
+
 
 def extract_math_expressions(content: str) -> List[str]:
     r"""
@@ -63,22 +70,15 @@ def extract_variables(math_expressions: List[str]) -> Set[str]:
     """
     variables = set()
 
-    # Patrones comunes para variables
-    # Variables latinas: \vec{A}, A, \mathbf{B}, etc.
-    latin_pattern = r'\\vec\{([A-Za-z])\}|\\mathbf\{([A-Za-z])\}|\\hat\{([A-Za-z])\}|([A-Za-z])(?![a-z])'
-
-    # Letras griegas: \alpha, \beta, \theta, etc.
-    greek_pattern = r'\\(alpha|beta|gamma|delta|epsilon|theta|phi|rho|omega|sigma|lambda|mu|nu|pi|tau)'
-
     for expr in math_expressions:
         # Buscar variables latinas
-        for match in re.finditer(latin_pattern, expr):
+        for match in LATIN_PATTERN.finditer(expr):
             var = match.group(1) or match.group(2) or match.group(3) or match.group(4)
             if var and var.isalpha():
                 variables.add(var)
 
         # Buscar letras griegas
-        for match in re.finditer(greek_pattern, expr):
+        for match in GREEK_PATTERN.finditer(expr):
             variables.add(match.group(1))
 
     return variables
