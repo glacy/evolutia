@@ -39,12 +39,20 @@ class ExerciseAnalyzer:
         'dispositivo', 'campo', 'potencial'
     ]
 
+    STEP_KEYWORDS = [
+        'primero', 'luego', 'finalmente', 'ahora', 'a continuación',
+        'por tanto', 'por lo tanto', 'en consecuencia', 'así',
+        'por otro lado', 'además', 'también'
+    ]
+
     # Patrones compilados para búsqueda eficiente
     TYPE_PATTERNS = {
         'demostracion': re.compile('|'.join(map(re.escape, DEMOSTRACION_KEYWORDS)), re.IGNORECASE),
         'calculo': re.compile('|'.join(map(re.escape, CALCULO_KEYWORDS)), re.IGNORECASE),
         'aplicacion': re.compile('|'.join(map(re.escape, APLICACION_KEYWORDS)), re.IGNORECASE)
     }
+
+    STEP_KEYWORDS_PATTERN = re.compile('|'.join(map(re.escape, STEP_KEYWORDS)), re.IGNORECASE)
 
     # Conceptos matemáticos comunes
     CONCEPT_PATTERNS = {
@@ -129,15 +137,7 @@ class ExerciseAnalyzer:
         numbered_steps = len(re.findall(r'^\s*\d+[\.\)]\s+', solution_content, re.MULTILINE))
 
         # Contar palabras clave de pasos
-        step_keywords = [
-            r'primero', r'luego', r'finalmente', r'ahora', r'a continuación',
-            r'por tanto', r'por lo tanto', r'en consecuencia', r'así',
-            r'por otro lado', r'además', r'también'
-        ]
-        keyword_steps = sum(
-            len(re.findall(keyword, solution_content, re.IGNORECASE))
-            for keyword in step_keywords
-        )
+        keyword_steps = len(self.STEP_KEYWORDS_PATTERN.findall(solution_content))
 
         # Contar bloques de ecuaciones (align, equation)
         equation_blocks = len(re.findall(
