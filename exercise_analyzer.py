@@ -100,20 +100,25 @@ class ExerciseAnalyzer:
         Returns:
             Tipo de ejercicio: 'demostracion', 'calculo', 'aplicacion', 'mixto'
         """
-        has_demostracion = bool(self.TYPE_PATTERNS['demostracion'].search(content))
-        has_calculo = bool(self.TYPE_PATTERNS['calculo'].search(content))
-        has_aplicacion = bool(self.TYPE_PATTERNS['aplicacion'].search(content))
-
-        if has_demostracion and (has_calculo or has_aplicacion):
-            return 'mixto'
-        elif has_demostracion:
+        # Búsqueda optimizada con evaluación perezosa (short-circuit)
+        # Verificamos demostración primero ya que es determinante para 'mixto'
+        if self.TYPE_PATTERNS['demostracion'].search(content):
+            # Si es demostración, buscamos otros tipos para ver si es mixto
+            # Basta con encontrar uno de los dos para que sea mixto
+            if (self.TYPE_PATTERNS['calculo'].search(content) or
+                self.TYPE_PATTERNS['aplicacion'].search(content)):
+                return 'mixto'
             return 'demostracion'
-        elif has_calculo:
+
+        # Si no es demostración, buscamos cálculo
+        if self.TYPE_PATTERNS['calculo'].search(content):
             return 'calculo'
-        elif has_aplicacion:
+
+        # Finalmente aplicación
+        if self.TYPE_PATTERNS['aplicacion'].search(content):
             return 'aplicacion'
-        else:
-            return 'calculo'  # Por defecto
+
+        return 'calculo'  # Por defecto
 
     def count_solution_steps(self, solution_content: str) -> int:
         """
