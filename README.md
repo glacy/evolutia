@@ -291,7 +291,7 @@ El índice se reutiliza automáticamente. Solo usa `--reindex` si cambias materi
 ### Configuración de RAG
 
 Edita `config/config.yaml` para personalizar RAG:
-
+```yaml
 rag:
   vector_store:
     # Base de datos vectorial persistente
