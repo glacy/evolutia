@@ -4,7 +4,7 @@ Valida exhaustivamente la configuración del sistema.
 """
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Tuple, Optional, Union
+from typing import Dict, Any, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 

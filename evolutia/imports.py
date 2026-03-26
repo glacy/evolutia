@@ -3,7 +3,6 @@ Módulo de imports centralizados y condicionales para EvolutIA.
 Gestiona imports de dependencias opcionales (RAG, ML, etc.) de forma centralizada.
 """
 import logging
-from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 

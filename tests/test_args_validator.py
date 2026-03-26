@@ -3,9 +3,7 @@ Tests para ArgsValidator.
 """
 import pytest
 import argparse
-from pathlib import Path
-from evolutia.validation.args_validator import ArgsValidator, ValidationError
-import tempfile
+from evolutia.validation.args_validator import ArgsValidator
 
 
 class TestArgsValidator:

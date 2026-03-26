@@ -7,7 +7,6 @@ import yaml
 import logging
 from pathlib import Path
 from typing import Dict, List, Set, Any, Union, Optional
-import sys
 import json
 try:
     import jsonschema
