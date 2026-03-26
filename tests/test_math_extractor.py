@@ -1,5 +1,4 @@
 
-import pytest
 from evolutia.utils.math_extractor import (
     extract_math_expressions,
     extract_variables,

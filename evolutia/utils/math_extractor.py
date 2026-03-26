@@ -3,7 +3,7 @@ Utilidades para extraer y analizar expresiones matemáticas de archivos Markdown
 """
 import re
 import logging
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set
 
 logger = logging.getLogger(__name__)
 

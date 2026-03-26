@@ -2,7 +2,6 @@
 Test de integración de caché en ExerciseAnalyzer.
 """
 import pytest
-from pathlib import Path
 from evolutia.exercise_analyzer import ExerciseAnalyzer
 from evolutia.cache.exercise_cache import ExerciseAnalysisCache
 

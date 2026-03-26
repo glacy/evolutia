@@ -33,7 +33,6 @@ class RAGManager:
         """Carga la configuración de RAG."""
         if config_path is None:
             # Intentar buscar en root, luego default interno
-            import sys
             # Si estamos en un paquete o script, buscar relativo
             # __file__ está en evolutia/config_manager.py
             # parent = evolutia/

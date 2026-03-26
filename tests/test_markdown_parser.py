@@ -1,5 +1,4 @@
 
-import pytest
 from evolutia.utils.markdown_parser import (
     extract_frontmatter,
     extract_exercise_blocks,
