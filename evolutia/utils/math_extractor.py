@@ -35,6 +35,16 @@ COMBINED_MATH_PATTERN = re.compile(
     re.DOTALL
 )
 
+# Set of group names that contain the actual math content we want to extract.
+# Used for optimization to avoid checking all groups.
+MATH_PAYLOAD_GROUPS = {
+    'block_content',
+    'display_dollar',
+    'display_bracket',
+    'inline_dollar',
+    'inline_paren'
+}
+
 
 def extract_math_expressions(content: str) -> List[str]:
     r"""
@@ -57,13 +67,20 @@ def extract_math_expressions(content: str) -> List[str]:
     expressions = []
 
     for match in COMBINED_MATH_PATTERN.finditer(content):
-        expr = (
-            match.group('block_content') or
-            match.group('display_dollar') or
-            match.group('display_bracket') or
-            match.group('inline_dollar') or
-            match.group('inline_paren')
-        )
+        # Optimization: fast path using lastgroup if it's one of our expected payload groups.
+        # This avoids multiple group() calls in the common case.
+        # Fallback to explicit checks ensures robustness if regex structure changes (e.g. nested groups).
+        if match.lastgroup in MATH_PAYLOAD_GROUPS:
+            expr = match.group(match.lastgroup)
+        else:
+            expr = (
+                match.group('block_content') or
+                match.group('display_dollar') or
+                match.group('display_bracket') or
+                match.group('inline_dollar') or
+                match.group('inline_paren')
+            )
+
         if expr:
             expressions.append(expr.strip())
 
