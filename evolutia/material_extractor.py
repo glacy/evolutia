@@ -237,24 +237,26 @@ class MaterialExtractor:
     def get_all_exercises(self, materials: List[Dict]) -> List[Dict]:
         """
         Obtiene todos los ejercicios de una lista de materiales.
-        
+
         Args:
             materials: Lista de materiales extraídos
-            
+
         Returns:
             Lista de ejercicios con sus metadatos
         """
         all_exercises = []
-        
+
         for material in materials:
+            # Crear mapa de soluciones O(N) para evitar búsqueda O(N*M)
+            solution_map = {}
+            for sol in material['solutions']:
+                if sol['exercise_label'] not in solution_map:
+                    solution_map[sol['exercise_label']] = sol
+
             for exercise in material['exercises']:
-                # Buscar solución correspondiente
-                solution = None
-                for sol in material['solutions']:
-                    if sol['exercise_label'] == exercise['label']:
-                        solution = sol
-                        break
-                
+                # Buscar solución correspondiente O(1)
+                solution = solution_map.get(exercise['label'])
+
                 exercise_data = {
                     'label': exercise['label'],
                     'content': exercise['resolved_content'],
@@ -264,7 +266,7 @@ class MaterialExtractor:
                     'solution_label': solution['label'] if solution else None
                 }
                 all_exercises.append(exercise_data)
-        
+
         return all_exercises
 
     def clear_cache(self):
