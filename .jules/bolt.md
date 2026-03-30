@@ -6,3 +6,7 @@
 ## 2025-05-20 - Pre-compiling Regex in Loops
 **Learning:** `re.findall(pattern, string)` recompiles (or retrieves from cache) the pattern on every call. In high-frequency functions called inside loops (like complexity estimation), this overhead adds up.
 **Action:** Always pre-compile regexes (`re.compile`) into module-level or class-level constants if they are used repeatedly, especially in tight loops or recursive functions.
+
+## 2025-05-25 - Solution Lookup Performance in MaterialExtractor
+**Learning:** `get_all_exercises` in `MaterialExtractor` was using an O(N*M) nested loop to match exercises with their solutions. For large Markdown files with many exercises, this becomes a performance bottleneck.
+**Action:** Replace the nested loop with an O(N+M) dictionary lookup mapping `exercise_label` to the solution. To preserve first-match behavior, populate the dictionary by checking `if label not in dict`.
