@@ -57,15 +57,10 @@ def extract_math_expressions(content: str) -> List[str]:
     expressions = []
 
     for match in COMBINED_MATH_PATTERN.finditer(content):
-        expr = (
-            match.group('block_content') or
-            match.group('display_dollar') or
-            match.group('display_bracket') or
-            match.group('inline_dollar') or
-            match.group('inline_paren')
-        )
-        if expr:
-            expressions.append(expr.strip())
+        if match.lastgroup:
+            expr = match.group(match.lastgroup)
+            if expr:
+                expressions.append(expr.strip())
 
     logger.debug(f"[MathExtractor] Extraídas {len(expressions)} expresiones matemáticas del contenido")
     return expressions
@@ -85,14 +80,18 @@ def extract_variables(math_expressions: List[str]) -> Set[str]:
     """
     variables = set()
 
-    for expr in math_expressions:
-        for match in COMBINED_VARIABLES_PATTERN.finditer(expr):
-            # Check which group matched
-            # lastindex gives the index of the capturing group that matched
-            if match.lastindex:
-                var = match.group(match.lastindex)
-                if var:
-                    variables.add(var)
+    if not math_expressions:
+        return variables
+
+    combined_expr = " ".join(math_expressions)
+
+    for match in COMBINED_VARIABLES_PATTERN.finditer(combined_expr):
+        # Check which group matched
+        # lastindex gives the index of the capturing group that matched
+        if match.lastindex:
+            var = match.group(match.lastindex)
+            if var:
+                variables.add(var)
 
     logger.debug(f"[MathExtractor] Extraídas {len(variables)} variables de {len(math_expressions)} expresiones")
     return variables
