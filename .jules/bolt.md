@@ -6,3 +6,7 @@
 ## 2025-05-20 - Pre-compiling Regex in Loops
 **Learning:** `re.findall(pattern, string)` recompiles (or retrieves from cache) the pattern on every call. In high-frequency functions called inside loops (like complexity estimation), this overhead adds up.
 **Action:** Always pre-compile regexes (`re.compile`) into module-level or class-level constants if they are used repeatedly, especially in tight loops or recursive functions.
+
+## 2025-05-25 - Regex Group Extraction Optimization
+**Learning:** In loops processing regex matches with complex alternations and named groups, extracting the match with sequential `or` clauses (`match.group('A') or match.group('B') ...`) introduces unnecessary Python evaluation overhead. Using `match.group(match.lastgroup)` directly retrieves the matched named group.
+**Action:** When extracting a single alternative from a complex regex with named groups, use `match.group(match.lastgroup)` instead of evaluating each group sequentially.
