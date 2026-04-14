@@ -57,15 +57,12 @@ def extract_math_expressions(content: str) -> List[str]:
     expressions = []
 
     for match in COMBINED_MATH_PATTERN.finditer(content):
-        expr = (
-            match.group('block_content') or
-            match.group('display_dollar') or
-            match.group('display_bracket') or
-            match.group('inline_dollar') or
-            match.group('inline_paren')
-        )
-        if expr:
-            expressions.append(expr.strip())
+        # Optimización: match.lastgroup devuelve directamente el nombre del grupo
+        # que coincidió, evitando la cadena de evaluaciones or a nivel de Python.
+        if match.lastgroup:
+            expr = match.group(match.lastgroup)
+            if expr:
+                expressions.append(expr.strip())
 
     logger.debug(f"[MathExtractor] Extraídas {len(expressions)} expresiones matemáticas del contenido")
     return expressions
