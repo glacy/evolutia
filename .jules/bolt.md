@@ -6,3 +6,6 @@
 ## 2025-05-20 - Pre-compiling Regex in Loops
 **Learning:** `re.findall(pattern, string)` recompiles (or retrieves from cache) the pattern on every call. In high-frequency functions called inside loops (like complexity estimation), this overhead adds up.
 **Action:** Always pre-compile regexes (`re.compile`) into module-level or class-level constants if they are used repeatedly, especially in tight loops or recursive functions.
+## $(date +%Y-%m-%d) - [Optimize async task loop in evolutia_engine.py]
+**Learning:** Calling `loop.run_until_complete()` repeatedly inside a loop iterating over `asyncio.as_completed()` blocks the event loop on each iteration, completely negating the benefits of asynchronous task execution by preventing true concurrency.
+**Action:** When gathering results from multiple concurrent async tasks using `asyncio.as_completed()`, always wrap the task consumption loop inside an internal `async def run_all()` function, `await` the results inside the loop, and then call `loop.run_until_complete(run_all())` exactly once.
