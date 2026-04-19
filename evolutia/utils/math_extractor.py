@@ -3,7 +3,7 @@ Utilidades para extraer y analizar expresiones matemáticas de archivos Markdown
 """
 import re
 import logging
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set
 
 logger = logging.getLogger(__name__)
 
@@ -57,13 +57,8 @@ def extract_math_expressions(content: str) -> List[str]:
     expressions = []
 
     for match in COMBINED_MATH_PATTERN.finditer(content):
-        expr = (
-            match.group('block_content') or
-            match.group('display_dollar') or
-            match.group('display_bracket') or
-            match.group('inline_dollar') or
-            match.group('inline_paren')
-        )
+        # Use lastgroup to get the matched group directly instead of sequential evaluation
+        expr = match.group(match.lastgroup)
         if expr:
             expressions.append(expr.strip())
 
