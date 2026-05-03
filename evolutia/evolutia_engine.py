@@ -530,13 +530,21 @@ class EvolutiaEngine:
             asyncio.set_event_loop(loop)
 
         valid_variations = []
-        for coro in tqdm(asyncio.as_completed(async_tasks), total=len(async_tasks), desc="Generando"):
-            try:
-                result = loop.run_until_complete(coro)
-                if result:
-                    valid_variations.append(result)
-            except Exception as e:
-                logger.error(f"Excepción no manejada en async worker: {e}")
+
+        # ⚡ Bolt Optimization: Wrap task aggregation in a single async coroutine
+        # Previously, loop.run_until_complete() was called inside the for-loop.
+        # This blocked the event loop on each iteration, causing overhead and defeating concurrency.
+        # Running the loop once with `run_all()` awaits all tasks concurrently.
+        async def run_all():
+            for coro in tqdm(asyncio.as_completed(async_tasks), total=len(async_tasks), desc="Generando"):
+                try:
+                    result = await coro
+                    if result:
+                        valid_variations.append(result)
+                except Exception as e:
+                    logger.error(f"Excepción no manejada en async worker: {e}")
+
+        loop.run_until_complete(run_all())
 
         logger.info(f"Generación async completada. {len(valid_variations)} variaciones exitosas.")
         return valid_variations
