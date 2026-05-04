@@ -2,14 +2,13 @@
 Generador de variaciones de ejercicios con mayor complejidad.
 Utiliza APIs de IA para generar variaciones inteligentes.
 """
-import os
 import logging
-from typing import Dict, Optional, List, Union, Any
+from typing import Dict, Optional, List, Any
 from dotenv import load_dotenv
 from pathlib import Path
 
 # Imports for new Provider system
-from .llm_providers import get_provider, LLMProvider
+from .llm_providers import get_provider
 from .utils.json_parser import extract_and_parse_json
 
 # Cargar variables de entorno explícitamente desde el directorio del script

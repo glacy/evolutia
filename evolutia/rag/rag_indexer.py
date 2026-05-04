@@ -4,7 +4,7 @@ RAG Indexer: Indexa materiales didácticos en un vector store.
 import os
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 import hashlib
 
 try:

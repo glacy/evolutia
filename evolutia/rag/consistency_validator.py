@@ -2,7 +2,7 @@
 Consistency Validator: Valida consistencia usando RAG.
 """
 import logging
-from typing import Dict, List, Optional
+from typing import Dict
 
 try:
     from complexity_validator import ComplexityValidator

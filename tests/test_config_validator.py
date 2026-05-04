@@ -3,8 +3,7 @@ Tests para ConfigValidator.
 """
 import pytest
 from pathlib import Path
-from evolutia.validation.config_validator import ConfigValidator, ConfigValidationError
-import tempfile
+from evolutia.validation.config_validator import ConfigValidator
 
 
 class TestConfigValidator:

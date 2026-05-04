@@ -4,7 +4,7 @@ Módulo que define los proveedores de LLM abstractos y concretos.
 import os
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, Union, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class LLMProvider(ABC):
             self._setup_client()
 
         if self.cache:
-            logger.debug(f"[LLMProvider] Caché de LLM habilitado")
+            logger.debug("[LLMProvider] Caché de LLM habilitado")
 
     @abstractmethod
     def _get_api_key(self) -> Optional[str]:

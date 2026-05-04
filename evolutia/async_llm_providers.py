@@ -5,7 +5,7 @@ Usa asyncio para llamadas concurrentes a APIs de LLM.
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Optional
 from functools import wraps
 
 from .retry_utils import retry_async

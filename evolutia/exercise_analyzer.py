@@ -5,7 +5,6 @@ Identifica tipo, pasos, conceptos y variables de ejercicios.
 import re
 import logging
 from typing import Dict, List, Set, Optional, TYPE_CHECKING
-from collections import Counter
 
 if TYPE_CHECKING:
     from evolutia.cache.exercise_cache import ExerciseAnalysisCache
@@ -23,8 +22,7 @@ except ImportError:
     from .utils.math_extractor import (
         extract_math_expressions,
         extract_variables,
-        count_math_operations,
-        estimate_complexity
+        count_math_operations
     )
 
 

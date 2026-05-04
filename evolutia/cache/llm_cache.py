@@ -10,7 +10,7 @@ import time
 import threading
 import atexit
 from pathlib import Path
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 

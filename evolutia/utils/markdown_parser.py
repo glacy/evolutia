@@ -5,7 +5,7 @@ import re
 import yaml
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 logger = logging.getLogger(__name__)
 

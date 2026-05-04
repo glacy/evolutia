@@ -3,7 +3,6 @@ Tests para módulos de caché (LLMCache y ExerciseAnalysisCache).
 """
 import pytest
 import time
-from pathlib import Path
 from evolutia.cache.llm_cache import LLMCache
 from evolutia.cache.exercise_cache import ExerciseAnalysisCache
 
