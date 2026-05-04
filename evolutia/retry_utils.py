@@ -254,7 +254,7 @@ def with_circuit_breaker(circuit_breaker: CircuitBreaker):
                 result = await func(*args, **kwargs)
                 circuit_breaker.record_success()
                 return result
-            except circuit_breaker.expected_exception as e:
+            except circuit_breaker.expected_exception:
                 circuit_breaker.record_failure()
                 raise
 
@@ -267,7 +267,7 @@ def with_circuit_breaker(circuit_breaker: CircuitBreaker):
                 result = func(*args, **kwargs)
                 circuit_breaker.record_success()
                 return result
-            except circuit_breaker.expected_exception as e:
+            except circuit_breaker.expected_exception:
                 circuit_breaker.record_failure()
                 raise
 

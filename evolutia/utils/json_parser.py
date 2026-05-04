@@ -5,7 +5,7 @@ que pueden contener LaTeX o formatos markdown incorrectos.
 import json
 import re
 import logging
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 

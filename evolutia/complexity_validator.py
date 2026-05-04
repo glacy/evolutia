@@ -6,7 +6,6 @@ import logging
 from typing import Dict, List, Tuple
 
 from .exercise_analyzer import ExerciseAnalyzer
-from .utils.math_extractor import extract_math_expressions, estimate_complexity
 
 
 logger = logging.getLogger(__name__)
