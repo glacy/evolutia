@@ -6,3 +6,7 @@
 ## 2025-05-20 - Pre-compiling Regex in Loops
 **Learning:** `re.findall(pattern, string)` recompiles (or retrieves from cache) the pattern on every call. In high-frequency functions called inside loops (like complexity estimation), this overhead adds up.
 **Action:** Always pre-compile regexes (`re.compile`) into module-level or class-level constants if they are used repeatedly, especially in tight loops or recursive functions.
+
+## 2026-05-19 - O(N*M) loop to Dictionary Mapping
+**Learning:** In list processing loops across multiple dictionaries, O(N*M) search loops can significantly impact performance.
+**Action:** Replaced O(N*M) nested loops with O(N) pre-computed lookup dictionaries to map solutions to exercises, ensuring optimal scaling.
