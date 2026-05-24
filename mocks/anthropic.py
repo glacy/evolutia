@@ -1,0 +1,2 @@
+class Anthropic:
+    pass

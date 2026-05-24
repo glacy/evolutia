@@ -1,0 +1,2 @@
+class GenerativeModel:
+    pass
