@@ -48,4 +48,5 @@ tests/test_config_validator.py
 tests/test_exercise_analyzer.py
 tests/test_exercise_analyzer_cache.py
 tests/test_json_robustness.py
+tests/test_markdown_parser.py
 tests/test_math_extractor.py
